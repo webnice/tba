@@ -1,3 +1,3 @@
-module github.com/OvyFlash/telegram-bot-api
+module github.com/webnice/tba/v9
 
-go 1.23
+go 1.25

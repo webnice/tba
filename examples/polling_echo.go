@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	api "github.com/OvyFlash/telegram-bot-api"
+	api "github.com/webnice/tba/v9"
 )
 
 // func main() { polling_echo() }

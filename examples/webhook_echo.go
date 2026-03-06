@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	api "github.com/OvyFlash/telegram-bot-api"
+	api "github.com/webnice/tba"
 )
 
 // func main() { webhook_echo() }

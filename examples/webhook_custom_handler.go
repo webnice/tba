@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sync"
 
-	api "github.com/OvyFlash/telegram-bot-api"
+	api "github.com/webnice/tba/v9"
 )
 
 // func main() { webhook_custom_handler() }
