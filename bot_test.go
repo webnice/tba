@@ -579,7 +579,7 @@ func TestSendWithMediaGroupPhotoVideo(t *testing.T) {
 	bot, _ := getBot(t)
 
 	cfg := NewMediaGroup(ChatID, []InputMedia{
-		ptr(NewInputMediaPhoto(FileURL("https://github.com/go-telegram-bot-api/telegram-bot-api/raw/0a3a1c8716c4cd8d26a262af9f12dcbab7f3f28c/tests/image.jpg"))),
+		ptr(NewInputMediaPhoto(FileURL("https://github.com/webnice/tba/raw/0a3a1c8716c4cd8d26a262af9f12dcbab7f3f28c/tests/image.jpg"))),
 		ptr(NewInputMediaPhoto(FilePath("tests/image.jpg"))),
 		ptr(NewInputMediaVideo(FilePath("tests/video.mp4"))),
 	})

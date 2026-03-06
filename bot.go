@@ -185,7 +185,6 @@ func (bot *BotAPI) UploadFilesWithContext(ctx context.Context, endpoint string, 
 	m := multipart.NewWriter(w)
 
 	// This code modified from the very helpful @HirbodBehnam
-	// https://github.com/go-telegram-bot-api/telegram-bot-api/issues/354#issuecomment-663856473
 	go func() {
 		defer w.Close()
 		defer m.Close()

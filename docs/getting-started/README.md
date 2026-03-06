@@ -10,7 +10,7 @@ approaches to solve common problems.
 ## Installing
 
 ```bash
-go get -u github.com/go-telegram-bot-api/telegram-bot-api/v5
+go get -u "github.com/webnice/tba/v9"
 ```
 
 ## A Simple Bot
@@ -21,16 +21,13 @@ messages repeating what you said. Make sure you get an API token from
 
 Let's start by constructing a new [BotAPI][bot-api-docs].
 
-[botfather]: https://t.me/Botfather
-[bot-api-docs]: https://pkg.go.dev/github.com/go-telegram-bot-api/telegram-bot-api/v5?tab=doc#BotAPI
-
 ```go
 package main
 
 import (
 	"os"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	tgbotapi "github.com/webnice/tba/v9"
 )
 
 func main() {

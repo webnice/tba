@@ -2,7 +2,7 @@
 
 # Headline
 
-This is a maintained fork of go-telegram-bot-api that preserves the original design while staying current with the latest Telegram Bot API specifications. It continues the development of the original [github.com/go-telegram-bot-api](https://github.com/go-telegram-bot-api/telegram-bot-api) package.
+This is a maintained fork of github.com/webnice/tba that preserves the original design while staying current with the latest Telegram Bot API specifications. It continues the development of the original [github.com/go-telegram-bot-api](https://github.com/go-telegram-bot-api/telegram-bot-api) package.
 
 ## Features
 
