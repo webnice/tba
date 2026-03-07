@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	api "github.com/webnice/tba"
+	api "github.com/webnice/tba/v9"
 )
 
 // func main() { webhook_echo() }

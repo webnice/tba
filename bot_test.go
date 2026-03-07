@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	ChatID                  = 76918703
-	Channel                 = "@tgbotapitest"
-	SupergroupChatID        = -1001120141283
-	ReplyToMessageID        = 35
+	ChatID                  = 110000001        // Телеграм ID пользователя.
+	Channel                 = "@mychannelname" // Псевдоним канала.
+	SupergroupChatID        = -1000000000008   // Идентификатор группы.
+	ReplyToMessageID        = 129              // Идентификатор сообщения в группе, создающее тему группы.
 	ExistingPhotoFileID     = "AgACAgIAAxkDAAEBFUZhIALQ9pZN4BUe8ZSzUU_2foSo1AACnrMxG0BucEhezsBWOgcikQEAAwIAA20AAyAE"
 	ExistingDocumentFileID  = "BQADAgADOQADjMcoCcioX1GrDvp3Ag"
 	ExistingAudioFileID     = "BQADAgADRgADjMcoCdXg3lSIN49lAg"
@@ -81,7 +81,7 @@ func TestGetUpdates(t *testing.T) {
 func TestSendWithMessage(t *testing.T) {
 	bot, _ := getBot(t)
 
-	msg := NewMessage(ChatID, "A test message from the test library in telegram-bot-api")
+	msg := NewMessage(ChatID, "A test message from the test library in github.com/webnice/tba")
 	msg.ParseMode = ModeMarkdown
 	_, err := bot.Send(msg)
 	if err != nil {
@@ -92,7 +92,7 @@ func TestSendWithMessage(t *testing.T) {
 func TestSendWithMessageReply(t *testing.T) {
 	bot, _ := getBot(t)
 
-	msg := NewMessage(ChatID, "A test message from the test library in telegram-bot-api")
+	msg := NewMessage(ChatID, "A test message from the test library in github.com/webnice/tba")
 	msg.ReplyParameters.MessageID = ReplyToMessageID
 	_, err := bot.Send(msg)
 	if err != nil {
@@ -113,7 +113,7 @@ func TestSendWithMessageForward(t *testing.T) {
 func TestCopyMessage(t *testing.T) {
 	bot, _ := getBot(t)
 
-	msg := NewMessage(ChatID, "A test message from the test library in telegram-bot-api")
+	msg := NewMessage(ChatID, "A test message from the test library in github.com/webnice/tba")
 	message, err := bot.Send(msg)
 	if err != nil {
 		t.Error(err)
@@ -579,7 +579,7 @@ func TestSendWithMediaGroupPhotoVideo(t *testing.T) {
 	bot, _ := getBot(t)
 
 	cfg := NewMediaGroup(ChatID, []InputMedia{
-		ptr(NewInputMediaPhoto(FileURL("https://github.com/webnice/tba/raw/0a3a1c8716c4cd8d26a262af9f12dcbab7f3f28c/tests/image.jpg"))),
+		ptr(NewInputMediaPhoto(FileURL("https://raw.githubusercontent.com/webnice/tba/refs/heads/v9/tests/image.jpg"))),
 		ptr(NewInputMediaPhoto(FilePath("tests/image.jpg"))),
 		ptr(NewInputMediaVideo(FilePath("tests/video.mp4"))),
 	})
@@ -645,7 +645,7 @@ func TestSendWithMediaGroupAudio(t *testing.T) {
 func TestDeleteMessage(t *testing.T) {
 	bot, _ := getBot(t)
 
-	msg := NewMessage(ChatID, "A test message from the test library in telegram-bot-api")
+	msg := NewMessage(ChatID, "A test message from the test library in github.com/webnice/tba")
 	msg.ParseMode = ModeMarkdown
 	message, _ := bot.Send(msg)
 
@@ -666,7 +666,7 @@ func TestDeleteMessage(t *testing.T) {
 func TestPinChatMessage(t *testing.T) {
 	bot, _ := getBot(t)
 
-	msg := NewMessage(SupergroupChatID, "A test message from the test library in telegram-bot-api")
+	msg := NewMessage(SupergroupChatID, "A test message from the test library in github.com/webnice/tba")
 	msg.ParseMode = ModeMarkdown
 	message, _ := bot.Send(msg)
 
@@ -688,7 +688,7 @@ func TestPinChatMessage(t *testing.T) {
 func TestUnpinChatMessage(t *testing.T) {
 	bot, _ := getBot(t)
 
-	msg := NewMessage(SupergroupChatID, "A test message from the test library in telegram-bot-api")
+	msg := NewMessage(SupergroupChatID, "A test message from the test library in github.com/webnice/tba")
 	msg.ParseMode = ModeMarkdown
 	message, _ := bot.Send(msg)
 
@@ -724,7 +724,7 @@ func TestUnpinChatMessage(t *testing.T) {
 func TestUnpinAllChatMessages(t *testing.T) {
 	bot, _ := getBot(t)
 
-	msg := NewMessage(SupergroupChatID, "A test message from the test library in telegram-bot-api")
+	msg := NewMessage(SupergroupChatID, "A test message from the test library in github.com/webnice/tba")
 	msg.ParseMode = ModeMarkdown
 	message, _ := bot.Send(msg)
 
