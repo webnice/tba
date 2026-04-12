@@ -29,20 +29,20 @@ func TestAddNonEmpty(t *testing.T) {
 
 func TestAddNonZero(t *testing.T) {
 	params := make(Params)
-	params.AddNonZero("value", 1)
+	params.AddNonZeroInteger("value", 1)
 	assertLen(t, params, 1)
 	assertEq(t, params["value"], "1")
-	params.AddNonZero("test", 0)
+	params.AddNonZeroInteger("test", 0)
 	assertLen(t, params, 1)
 	assertEq(t, params["test"], "")
 }
 
 func TestAddNonZero64(t *testing.T) {
 	params := make(Params)
-	params.AddNonZero64("value", 1)
+	params.AddNonZeroInteger("value", 1)
 	assertLen(t, params, 1)
 	assertEq(t, params["value"], "1")
-	params.AddNonZero64("test", 0)
+	params.AddNonZeroInteger("test", 0)
 	assertLen(t, params, 1)
 	assertEq(t, params["test"], "")
 }

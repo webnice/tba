@@ -51,12 +51,11 @@ func getBot(t *testing.T) (*BotAPI, error) {
 }
 
 func TestBotWithCustomBuffer(t *testing.T) {
+	const customValue int64 = 200
+
 	bot, _ := getBot(t)
-
-	customValue := 200
-	bot.SetUpdatesBuffer(customValue)
-
-	assertEq(t, bot.Buffer, customValue)
+	bot.SetUpdatesBufferLength(customValue)
+	assertEq(t, bot.BufferLength, customValue)
 }
 
 func TestNewBotAPI_notoken(t *testing.T) {
@@ -111,11 +110,15 @@ func TestSendWithMessageForward(t *testing.T) {
 }
 
 func TestCopyMessage(t *testing.T) {
+	var (
+		err     error
+		message Message
+	)
+
 	bot, _ := getBot(t)
 
 	msg := NewMessage(ChatID, "A test message from the test library in github.com/webnice/tba")
-	message, err := bot.Send(msg)
-	if err != nil {
+	if message, err = bot.Send(msg); err != nil {
 		t.Error(err)
 	}
 

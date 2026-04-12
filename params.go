@@ -16,15 +16,8 @@ func (p Params) AddNonEmpty(key, value string) {
 	}
 }
 
-// AddNonZero adds a value if it is not zero.
-func (p Params) AddNonZero(key string, value int) {
-	if value != 0 {
-		p[key] = strconv.Itoa(value)
-	}
-}
-
-// AddNonZero64 is the same as AddNonZero except uses an int64.
-func (p Params) AddNonZero64(key string, value int64) {
+// AddNonZeroInteger is the same as AddNonZero except uses an int64.
+func (p Params) AddNonZeroInteger(key string, value int64) {
 	if value != 0 {
 		p[key] = strconv.FormatInt(value, 10)
 	}

@@ -48,6 +48,7 @@ func polling_echo() {
 		api.UpdateTypeChatJoinRequest,
 		api.UpdateTypeChatBoost,
 		api.UpdateTypeRemovedChatBoost,
+		api.UpdateTypeManagedBot,
 	}
 
 	updatesChannel := bot.GetUpdatesChan(updateConfig)

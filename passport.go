@@ -2,7 +2,7 @@ package tgbotapi
 
 // PassportRequestInfoConfig allows you to request passport info
 type PassportRequestInfoConfig struct {
-	BotID     int            `json:"bot_id"`
+	BotID     int64          `json:"bot_id"`
 	Scope     *PassportScope `json:"scope"`
 	Nonce     string         `json:"nonce"`
 	PublicKey string         `json:"public_key"`
@@ -15,7 +15,7 @@ type PassportScopeElement interface {
 
 // PassportScope is the requested scopes of data.
 type PassportScope struct {
-	V    int                    `json:"v"`
+	V    int64                  `json:"v"`
 	Data []PassportScopeElement `json:"data"`
 }
 
@@ -63,7 +63,7 @@ type (
 		FileUniqueID string `json:"file_unique_id"`
 
 		// File size
-		FileSize int `json:"file_size"`
+		FileSize int64 `json:"file_size"`
 
 		// Unix time when the file was uploaded
 		FileDate int64 `json:"file_date"`

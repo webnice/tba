@@ -303,14 +303,6 @@ func TestMessageEntityIsTextLink(t *testing.T) {
 	}
 }
 
-func TestFileLink(t *testing.T) {
-	file := File{FilePath: "test/test.txt"}
-
-	if file.Link("token") != "https://api.telegram.org/file/bottoken/test/test.txt" {
-		t.Fail()
-	}
-}
-
 // Ensure all configs are sendable
 var (
 	_ Chattable = AddStickerConfig{}

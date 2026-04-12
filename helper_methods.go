@@ -29,7 +29,7 @@ func NewMessage(chatID int64, text string) MessageConfig {
 }
 
 // NewDeleteMessage creates a request to delete a message.
-func NewDeleteMessage(chatID int64, messageID int) DeleteMessageConfig {
+func NewDeleteMessage(chatID int64, messageID int64) DeleteMessageConfig {
 	return DeleteMessageConfig{
 		BaseChatMessage: BaseChatMessage{
 			ChatConfig: ChatConfig{
@@ -42,7 +42,7 @@ func NewDeleteMessage(chatID int64, messageID int) DeleteMessageConfig {
 
 // NewDeleteMessages creates a request to delete multiple messages. The messages have to be
 // in the same chat. Provide the message ids as an array of integers
-func NewDeleteMessages(chatID int64, messageIDs []int) DeleteMessagesConfig {
+func NewDeleteMessages(chatID int64, messageIDs []int64) DeleteMessagesConfig {
 	return DeleteMessagesConfig{
 		BaseChatMessages: BaseChatMessages{
 			ChatConfig: ChatConfig{
@@ -108,7 +108,7 @@ func NewMessageToChannel(username string, text string) MessageConfig {
 //
 // chatID is where to send it, fromChatID is the source chat,
 // and messageID is the ID of the original message.
-func NewForward(chatID int64, fromChatID int64, messageID int) ForwardConfig {
+func NewForward(chatID int64, fromChatID int64, messageID int64) ForwardConfig {
 	return ForwardConfig{
 		BaseChat:  BaseChat{ChatConfig: ChatConfig{ChatID: chatID}},
 		FromChat:  ChatConfig{ChatID: fromChatID},
@@ -120,7 +120,7 @@ func NewForward(chatID int64, fromChatID int64, messageID int) ForwardConfig {
 //
 // chatID is where to send it, fromChatID is the source chat,
 // and messageID is the ID of the original message.
-func NewCopyMessage(chatID int64, fromChatID int64, messageID int) CopyMessageConfig {
+func NewCopyMessage(chatID int64, fromChatID int64, messageID int64) CopyMessageConfig {
 	return CopyMessageConfig{
 		BaseChat:  BaseChat{ChatConfig: ChatConfig{ChatID: chatID}},
 		FromChat:  ChatConfig{ChatID: fromChatID},
@@ -232,7 +232,7 @@ func NewAnimation(chatID int64, file RequestFileData) AnimationConfig {
 //
 // chatID is where to send it, file is a string path to the file,
 // FileReader, or FileBytes.
-func NewVideoNote(chatID int64, length int, file RequestFileData) VideoNoteConfig {
+func NewVideoNote(chatID int64, length int64, file RequestFileData) VideoNoteConfig {
 	return VideoNoteConfig{
 		BaseFile: BaseFile{
 			BaseChat: BaseChat{ChatConfig: ChatConfig{ChatID: chatID}},
@@ -395,7 +395,7 @@ func NewSetUserEmojiStatus(userID int64, emojiID string, statusExpDate int64) Se
 //
 // offset is the last Update ID to include.
 // You likely want to set this to the last Update ID plus 1.
-func NewUpdate(offset int) UpdateConfig {
+func NewUpdate(offset int64) UpdateConfig {
 	return UpdateConfig{
 		Offset:  offset,
 		Limit:   0,
@@ -661,7 +661,7 @@ func NewInlineQueryResultVenue(id, title, address string, latitude, longitude fl
 }
 
 // NewEditMessageMedia allows you to edit the media content of a message.
-func NewEditMessageMedia(chatID int64, messageID int, inputMedia InputMedia) EditMessageMediaConfig {
+func NewEditMessageMedia(chatID int64, messageID int64, inputMedia InputMedia) EditMessageMediaConfig {
 	return EditMessageMediaConfig{
 		BaseEdit: BaseEdit{
 			BaseChatMessage: BaseChatMessage{
@@ -676,32 +676,32 @@ func NewEditMessageMedia(chatID int64, messageID int, inputMedia InputMedia) Edi
 }
 
 // NewEditMessagePhoto allows you to edit the photo content of a message.
-func NewEditMessagePhoto(chatID int64, messageID int, inputPhoto InputMediaPhoto) EditMessageMediaConfig {
+func NewEditMessagePhoto(chatID int64, messageID int64, inputPhoto InputMediaPhoto) EditMessageMediaConfig {
 	return NewEditMessageMedia(chatID, messageID, &inputPhoto)
 }
 
 // NewEditMessageVideo allows you to edit the video content of a message.
-func NewEditMessageVideo(chatID int64, messageID int, inputVideo InputMediaVideo) EditMessageMediaConfig {
+func NewEditMessageVideo(chatID int64, messageID int64, inputVideo InputMediaVideo) EditMessageMediaConfig {
 	return NewEditMessageMedia(chatID, messageID, &inputVideo)
 }
 
 // NewEditMessageAnimation allows you to edit the animation content of a message.
-func NewEditMessageAnimation(chatID int64, messageID int, inputAnimation InputMediaAnimation) EditMessageMediaConfig {
+func NewEditMessageAnimation(chatID int64, messageID int64, inputAnimation InputMediaAnimation) EditMessageMediaConfig {
 	return NewEditMessageMedia(chatID, messageID, &inputAnimation)
 }
 
 // NewEditMessageAudio allows you to edit the audio content of a message.
-func NewEditMessageAudio(chatID int64, messageID int, inputAudio InputMediaAudio) EditMessageMediaConfig {
+func NewEditMessageAudio(chatID int64, messageID int64, inputAudio InputMediaAudio) EditMessageMediaConfig {
 	return NewEditMessageMedia(chatID, messageID, &inputAudio)
 }
 
 // NewEditMessageDocument allows you to edit the document content of a message.
-func NewEditMessageDocument(chatID int64, messageID int, inputDocument InputMediaDocument) EditMessageMediaConfig {
+func NewEditMessageDocument(chatID int64, messageID int64, inputDocument InputMediaDocument) EditMessageMediaConfig {
 	return NewEditMessageMedia(chatID, messageID, &inputDocument)
 }
 
 // NewEditMessageText allows you to edit the text of a message.
-func NewEditMessageText(chatID int64, messageID int, text string) EditMessageTextConfig {
+func NewEditMessageText(chatID int64, messageID int64, text string) EditMessageTextConfig {
 	return EditMessageTextConfig{
 		BaseEdit: BaseEdit{
 			BaseChatMessage: BaseChatMessage{
@@ -716,7 +716,7 @@ func NewEditMessageText(chatID int64, messageID int, text string) EditMessageTex
 }
 
 // NewEditMessageTextAndMarkup allows you to edit the text and reply markup of a message.
-func NewEditMessageTextAndMarkup(chatID int64, messageID int, text string, replyMarkup InlineKeyboardMarkup) EditMessageTextConfig {
+func NewEditMessageTextAndMarkup(chatID int64, messageID int64, text string, replyMarkup InlineKeyboardMarkup) EditMessageTextConfig {
 	return EditMessageTextConfig{
 		BaseEdit: BaseEdit{
 			BaseChatMessage: BaseChatMessage{
@@ -732,7 +732,7 @@ func NewEditMessageTextAndMarkup(chatID int64, messageID int, text string, reply
 }
 
 // NewEditMessageCaption allows you to edit the caption of a message.
-func NewEditMessageCaption(chatID int64, messageID int, caption string) EditMessageCaptionConfig {
+func NewEditMessageCaption(chatID int64, messageID int64, caption string) EditMessageCaptionConfig {
 	return EditMessageCaptionConfig{
 		BaseEdit: BaseEdit{
 			BaseChatMessage: BaseChatMessage{
@@ -748,7 +748,7 @@ func NewEditMessageCaption(chatID int64, messageID int, caption string) EditMess
 
 // NewEditMessageReplyMarkup allows you to edit the inline
 // keyboard markup.
-func NewEditMessageReplyMarkup(chatID int64, messageID int, replyMarkup InlineKeyboardMarkup) EditMessageReplyMarkupConfig {
+func NewEditMessageReplyMarkup(chatID int64, messageID int64, replyMarkup InlineKeyboardMarkup) EditMessageReplyMarkupConfig {
 	return EditMessageReplyMarkupConfig{
 		BaseEdit: BaseEdit{
 			BaseChatMessage: BaseChatMessage{
@@ -936,9 +936,12 @@ func NewInvoice(
 	startParameter string,
 	currency string,
 	prices []LabeledPrice,
-	suggestedTipAmounts []int,
+	suggestedTipAmounts []int64,
 ) InvoiceConfig {
-	var maxTipAmount, n int
+	var (
+		maxTipAmount int64
+		n            int
+	)
 	for n = range suggestedTipAmounts {
 		if maxTipAmount < suggestedTipAmounts[n] {
 			maxTipAmount = suggestedTipAmounts[n]
@@ -994,7 +997,7 @@ func NewChatDescription(chatID int64, description string) SetChatDescriptionConf
 	}
 }
 
-func NewPinChatMessage(chatID int64, messageID int, disableNotification bool) PinChatMessageConfig {
+func NewPinChatMessage(chatID int64, messageID int64, disableNotification bool) PinChatMessageConfig {
 	return PinChatMessageConfig{
 		BaseChatMessage: BaseChatMessage{
 			ChatConfig: ChatConfig{
@@ -1006,7 +1009,7 @@ func NewPinChatMessage(chatID int64, messageID int, disableNotification bool) Pi
 	}
 }
 
-func NewUnpinChatMessage(chatID int64, messageID int) UnpinChatMessageConfig {
+func NewUnpinChatMessage(chatID int64, messageID int64) UnpinChatMessageConfig {
 	return UnpinChatMessageConfig{
 		BaseChatMessage: BaseChatMessage{
 			ChatConfig: ChatConfig{
@@ -1078,7 +1081,7 @@ func NewPollOption(text string) InputPollOption {
 }
 
 // NewStopPoll allows you to stop a poll.
-func NewStopPoll(chatID int64, messageID int) StopPollConfig {
+func NewStopPoll(chatID int64, messageID int64) StopPollConfig {
 	return StopPollConfig{
 		BaseEdit{
 			BaseChatMessage: BaseChatMessage{
@@ -1113,7 +1116,7 @@ func NewDiceWithEmoji(chatID int64, emoji string) DiceConfig {
 }
 
 // NewSetMessageReaction allows you to set a message's reactions.
-func NewSetMessageReaction(chatID int64, messageID int, reaction []ReactionType, isBig bool) SetMessageReactionConfig {
+func NewSetMessageReaction(chatID int64, messageID int64, reaction []ReactionType, isBig bool) SetMessageReactionConfig {
 	return SetMessageReactionConfig{
 		BaseChatMessage: BaseChatMessage{
 			ChatConfig: ChatConfig{
@@ -1229,8 +1232,30 @@ func NewGetBusinessConnection(id string) GetBusinessConnectionConfig {
 	}
 }
 
+// NewGetManagedBotToken Use this method to get the token of a managed bot. Returns the token as String on success.
+func NewGetManagedBotToken(userID int64) GetManagedBotTokenConfig {
+	return GetManagedBotTokenConfig{
+		UserID: userID,
+	}
+}
+
+// NewReplaceManagedBotToken Use this method to revoke the current token of a managed bot and generate a new one.
+// Returns the new token as String on success.
+func NewReplaceManagedBotToken(userID int64) ReplaceManagedBotTokenConfig {
+	return ReplaceManagedBotTokenConfig{
+		UserID: userID,
+	}
+}
+
+func NewSavePreparedKeyboardButton(userID int64, button KeyboardButton) SavePreparedKeyboardButtonConfig {
+	return SavePreparedKeyboardButtonConfig{
+		UserID: userID,
+		Button: &button,
+	}
+}
+
 // NewReadBusinessMessage gets business connection request struct
-func NewReadBusinessMessage(chatID int64, messageID int, businessConnectionID string) ReadBusinessMessageConfig {
+func NewReadBusinessMessage(chatID int64, messageID int64, businessConnectionID string) ReadBusinessMessageConfig {
 	return ReadBusinessMessageConfig{
 		BaseChatMessage: BaseChatMessage{
 			ChatConfig: ChatConfig{
@@ -1243,7 +1268,7 @@ func NewReadBusinessMessage(chatID int64, messageID int, businessConnectionID st
 }
 
 // NewDeleteBusinessMessages gets business connection request struct
-func NewDeleteBusinessMessages(messageIDs []int, businessConnectionID string) DeleteBusinessMessagesConfig {
+func NewDeleteBusinessMessages(messageIDs []int64, businessConnectionID string) DeleteBusinessMessagesConfig {
 	return DeleteBusinessMessagesConfig{
 		BaseChatMessages: BaseChatMessages{
 			MessageIDs:           messageIDs,
@@ -1376,7 +1401,7 @@ func NewEditForumTopicConfig(chatID, threadID int64, topicName string) EditForum
 	return EditForumTopicConfig{
 		BaseForum: BaseForum{
 			ChatConfig:      ChatConfig{ChatID: chatID},
-			MessageThreadID: int(threadID),
+			MessageThreadID: threadID,
 		},
 		Name: topicName,
 	}
@@ -1415,7 +1440,7 @@ func NewInputStoryContentVideo(video RequestFileData) InputStoryContentVideo {
 }
 
 // NewInputChecklistTask creates checklist task input.
-func NewInputChecklistTask(id int, text string) InputChecklistTask {
+func NewInputChecklistTask(id int64, text string) InputChecklistTask {
 	return InputChecklistTask{
 		ID:   id,
 		Text: text,
@@ -1441,7 +1466,7 @@ func NewSendChecklist(chatID int64, checklist InputChecklist) SendChecklistConfi
 }
 
 // NewEditMessageChecklist creates edit checklist config.
-func NewEditMessageChecklist(chatID int64, messageID int, checklist InputChecklist) EditMessageChecklistConfig {
+func NewEditMessageChecklist(chatID int64, messageID int64, checklist InputChecklist) EditMessageChecklistConfig {
 	return EditMessageChecklistConfig{
 		BaseChatMessage: BaseChatMessage{
 			ChatConfig: ChatConfig{ChatID: chatID},
@@ -1467,7 +1492,7 @@ func NewSetBusinessAccountProfilePhoto(businessConnectionID string, photo InputP
 }
 
 // NewPostStory creates post story config.
-func NewPostStory(businessConnectionID string, content InputStoryContent, activePeriod int) PostStoryConfig {
+func NewPostStory(businessConnectionID string, content InputStoryContent, activePeriod int64) PostStoryConfig {
 	return PostStoryConfig{
 		BusinessConnectionID: BusinessConnectionID(businessConnectionID),
 		Content:              content,
@@ -1476,7 +1501,7 @@ func NewPostStory(businessConnectionID string, content InputStoryContent, active
 }
 
 // NewRepostStory creates repost story config.
-func NewRepostStory(businessConnectionID string, fromChatID int64, fromStoryID int, activePeriod int) RepostStoryConfig {
+func NewRepostStory(businessConnectionID string, fromChatID int64, fromStoryID int64, activePeriod int64) RepostStoryConfig {
 	return RepostStoryConfig{
 		BusinessConnectionID: BusinessConnectionID(businessConnectionID),
 		FromChatID:           fromChatID,

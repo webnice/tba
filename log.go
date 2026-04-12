@@ -6,22 +6,16 @@ import (
 	"os"
 )
 
-// BotLogger is an interface that represents the required methods to log data.
-//
-// Instead of requiring the standard logger, we can just specify the methods we
-// use and allow users to pass anything that implements these.
-type BotLogger interface {
-	Println(v ...interface{})
-	Printf(format string, v ...interface{})
-}
+func init() { log = stdlog.New(os.Stderr, "", 0) }
 
-var log BotLogger = stdlog.New(os.Stderr, "", stdlog.LstdFlags)
+// SetLogger Настройка журналирования для пакета.
+func SetLogger(logger BotLogger) (err error) {
+	const errNil = "интерфейс журналирования не может быть nil"
 
-// SetLogger specifies the logger that the package should use.
-func SetLogger(logger BotLogger) error {
-	if logger == nil {
-		return errors.New("logger is nil")
+	if log = logger; logger == nil {
+		err = errors.New(errNil)
+		return
 	}
-	log = logger
-	return nil
+
+	return
 }

@@ -5,23 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 )
 
-// APIResponse is a response from the Telegram API with the result
-// stored raw.
+// APIResponse Ответ телеграм API.
 type APIResponse struct {
 	Ok          bool                `json:"ok"`
 	Result      json.RawMessage     `json:"result,omitempty"`
-	ErrorCode   int                 `json:"error_code,omitempty"`
+	ErrorCode   int64               `json:"error_code,omitempty"`
 	Description string              `json:"description,omitempty"`
 	Parameters  *ResponseParameters `json:"parameters,omitempty"`
 }
 
 // Error is an error containing extra information returned by the Telegram API.
 type Error struct {
-	Code    int
+	Code    int64
 	Message string
 	ResponseParameters
 }
@@ -41,7 +41,7 @@ type Update struct {
 	// the correct update sequence, should they get out of order.
 	// If there are no new updates for at least a week, then identifier
 	// of the next update will be chosen randomly instead of sequentially.
-	UpdateID int `json:"update_id"`
+	UpdateID int64 `json:"update_id"`
 	// Message new incoming message of any kind — text, photo, sticker, etc.
 	//
 	// optional
@@ -151,10 +151,14 @@ type Update struct {
 	//
 	// optional
 	ChatBoost *ChatBoostUpdated `json:"chat_boost,omitempty"`
-	// ChatBoostRemoved represents a boost removed from a chat.
+	// RemovedChatBoost represents a boost removed from a chat.
 	//
 	// optional
-	ChatBoostRemoved *ChatBoostRemoved `json:"removed_chat_boost,omitempty"`
+	RemovedChatBoost *ChatBoostRemoved `json:"removed_chat_boost,omitempty"`
+	// ManagedBot A new bot was created to be managed by the bot, or token or owner of a managed bot was changed.
+	//
+	// optional
+	ManagedBot *ManagedBotUpdated `json:"managed_bot,omitempty"`
 }
 
 // SentFrom returns the user who sent an update. Can be nil, if Telegram did not provide information
@@ -280,6 +284,10 @@ type User struct {
 	//
 	// optional
 	AllowsUsersToCreateTopics bool `json:"allows_users_to_create_topics,omitempty"`
+	// CanManageBots is true, if other bots can be created to be controlled by the bot.
+	//
+	// optional
+	CanManageBots bool `json:"can_manage_bots,omitempty"`
 }
 
 // String displays a simple text version of a user.
@@ -384,9 +392,9 @@ type ChatFullInfo struct {
 	// Always returned in getChat.
 	//
 	// optional
-	AccentColorID int `json:"accent_color_id,omitempty"`
+	AccentColorID int64 `json:"accent_color_id,omitempty"`
 	// The maximum number of reactions that can be set on a message in the chat
-	MaxReactionCount int `json:"max_reaction_count"`
+	MaxReactionCount int64 `json:"max_reaction_count"`
 	// BackgroundCustomEmojiID is a custom emoji identifier of emoji chosen by
 	// the chat for the reply header and link preview background.
 	// Returned only in getChat.
@@ -397,7 +405,7 @@ type ChatFullInfo struct {
 	// See profile accent colors for more details. Returned only in getChat.
 	//
 	// optional
-	ProfileAccentColorID int `json:"profile_accent_color_id,omitempty"`
+	ProfileAccentColorID int64 `json:"profile_accent_color_id,omitempty"`
 	// ProfileBackgroundCustomEmojiID is a custom emoji identifier of the emoji chosen by
 	// the chat for its profile background. Returned only in getChat.
 	//
@@ -473,18 +481,18 @@ type ChatFullInfo struct {
 	// getChat.
 	//
 	// optional
-	SlowModeDelay int `json:"slow_mode_delay,omitempty"`
+	SlowModeDelay int64 `json:"slow_mode_delay,omitempty"`
 	// UnrestrictBoostCount  is for supergroups, the minimum number of boosts that
 	// a non-administrator user needs to add in order to
 	// ignore slow mode and chat permissions. Returned only in getChat.
 	//
 	// optional
-	UnrestrictBoostCount int `json:"unrestrict_boost_count,omitempty"`
+	UnrestrictBoostCount int64 `json:"unrestrict_boost_count,omitempty"`
 	// MessageAutoDeleteTime is the time after which all messages sent to the
 	// chat will be automatically deleted; in seconds. Returned only in getChat.
 	//
 	// optional
-	MessageAutoDeleteTime int `json:"message_auto_delete_time,omitempty"`
+	MessageAutoDeleteTime int64 `json:"message_auto_delete_time,omitempty"`
 	// HasAggressiveAntiSpamEnabled is true if aggressive anti-spam checks are enabled
 	// in the supergroup. The field is only available to chat administrators.
 	// Returned only in getChat.
@@ -548,7 +556,7 @@ type ChatFullInfo struct {
 	// PaidMessageStarCount is number of stars required for paid messages.
 	//
 	// optional
-	PaidMessageStarCount int `json:"paid_message_star_count,omitempty"`
+	PaidMessageStarCount int64 `json:"paid_message_star_count,omitempty"`
 }
 
 // IsPrivate returns if the Chat is a private conversation.
@@ -581,7 +589,7 @@ type InaccessibleMessage struct {
 	// Chat the message belonged to
 	Chat Chat `json:"chat"`
 	// MessageID is unique message identifier inside the chat
-	MessageID int `json:"message_id"`
+	MessageID int64 `json:"message_id"`
 	// Date is always 0. The field can be used to differentiate regular and inaccessible messages.
 	Date int64 `json:"date"`
 }
@@ -589,12 +597,12 @@ type InaccessibleMessage struct {
 // Message represents a message.
 type Message struct {
 	// MessageID is a unique message identifier inside this chat
-	MessageID int `json:"message_id"`
+	MessageID int64 `json:"message_id"`
 	// Unique identifier of a message thread to which the message belongs;
 	// for supergroups only
 	//
 	// optional
-	MessageThreadID int `json:"message_thread_id,omitempty"`
+	MessageThreadID int64 `json:"message_thread_id,omitempty"`
 	// DirectMessagesTopic is topic information for direct messages chats.
 	//
 	// optional
@@ -614,7 +622,7 @@ type Message struct {
 	// if the sender of the message boosted the chat
 	//
 	// optional
-	SenderBoostCount int `json:"sender_boost_count,omitempty"`
+	SenderBoostCount int64 `json:"sender_boost_count,omitempty"`
 	// SenderBusinessBot is the bot that actually sent the message on behalf of
 	// the business account. Available only for outgoing messages sent on
 	// behalf of the connected business account.
@@ -671,7 +679,11 @@ type Message struct {
 	// ReplyToChecklistTaskID is identifier of the checklist task this message replies to.
 	//
 	// optional
-	ReplyToChecklistTaskID int `json:"reply_to_checklist_task_id,omitempty"`
+	ReplyToChecklistTaskID int64 `json:"reply_to_checklist_task_id,omitempty"`
+	// ReplyToPollOptionID Persistent identifier of the specific poll option that is being replied to.
+	//
+	// optional
+	ReplyToPollOptionID string `json:"reply_to_poll_option_id,omitempty"`
 	// ViaBot through which the message was sent;
 	//
 	// optional
@@ -704,7 +716,7 @@ type Message struct {
 	// PaidStarCount is number of Telegram Stars paid for paid media.
 	//
 	// optional
-	PaidStarCount int `json:"paid_star_count,omitempty"`
+	PaidStarCount int64 `json:"paid_star_count,omitempty"`
 	// Text is for text messages, the actual UTF-8 text of the message, 0-4096 characters;
 	//
 	// optional
@@ -1008,10 +1020,22 @@ type Message struct {
 	//
 	// optional
 	GiveawayCompleted *GiveawayCompleted `json:"giveaway_completed,omitempty"`
+	// ManagedBotCreated is a service message: user created a bot that will be managed by the current bot.
+	//
+	// optional
+	ManagedBotCreated *ManagedBotCreated `json:"managed_bot_created,omitempty"`
 	// PaidMessagePriceChanged is a service message for paid message price changes.
 	//
 	// optional
 	PaidMessagePriceChanged *PaidMessagePriceChanged `json:"paid_message_price_changed,omitempty"`
+	// PollOptionAdded Service message: answer option was added to a poll.
+	//
+	// optional
+	PollOptionAdded *PollOptionAdded `json:"poll_option_added,omitempty"`
+	// PollOptionDeleted Service message: answer option was deleted from a poll.
+	//
+	// optional
+	PollOptionDeleted *PollOptionDeleted `json:"poll_option_deleted,omitempty"`
 	// SuggestedPostApproved is a service message: suggested post approved.
 	//
 	// optional
@@ -1114,24 +1138,23 @@ func (m *Message) CommandWithAt() string {
 // - "/foo-bar baz" yields "bar baz", too
 // Even though the latter is not a command conforming to the spec, the API
 // marks "/foo" as command entity.
-func (m *Message) CommandArguments() string {
+func (m *Message) CommandArguments() (ret string) {
+	var entity MessageEntity
+
 	if !m.IsCommand() {
-		return ""
+		return
 	}
-
-	// IsCommand() checks that the message begins with a bot_command entity
-	entity := m.Entities[0]
-
-	if len(m.Text) == entity.Length {
-		return "" // The command makes up the whole message
+	if entity = m.Entities[0]; int64(len(m.Text)) == entity.Length {
+		return
 	}
+	ret = m.Text[entity.Length+1:]
 
-	return m.Text[entity.Length+1:]
+	return
 }
 
 // MessageID represents a unique message identifier.
 type MessageID struct {
-	MessageID int `json:"message_id"`
+	MessageID int64 `json:"message_id"`
 }
 
 // MessageEntity represents one special entity in a text message.
@@ -1159,9 +1182,9 @@ type MessageEntity struct {
 	//  "custom_emoji" (for inline custom emoji stickers)
 	Type string `json:"type"`
 	// Offset in UTF-16 code units to the start of the entity
-	Offset int `json:"offset"`
+	Offset int64 `json:"offset"`
 	// Length
-	Length int `json:"length"`
+	Length int64 `json:"length"`
 	// URL for "text_link" only, url that will be opened after user taps on the text
 	//
 	// optional
@@ -1270,7 +1293,7 @@ type TextQuote struct {
 	Entities []MessageEntity `json:"entities,omitempty"`
 	// Position is approximate quote position in the original message
 	// in UTF-16 code units as specified by the sender
-	Position int `json:"position"`
+	Position int64 `json:"position"`
 	// IsManual True, if the quote was chosen manually by the message sender.
 	// Otherwise, the quote was added automatically by the server.
 	//
@@ -1286,7 +1309,7 @@ type ExternalReplyInfo struct {
 	// Chat is the conversation the message belongs to
 	Chat *Chat `json:"chat"`
 	// MessageID is a unique message identifier inside this chat
-	MessageID int `json:"message_id"`
+	MessageID int64 `json:"message_id"`
 	// LinkPreviewOptions used for link preview generation for the original message,
 	// if it is a text message
 	//
@@ -1385,7 +1408,7 @@ type ExternalReplyInfo struct {
 type ReplyParameters struct {
 	// MessageID identifier of the message that will be replied to in
 	// the current chat, or in the chat chat_id if it is specified
-	MessageID int `json:"message_id"`
+	MessageID int64 `json:"message_id"`
 	// ChatID if the message to be replied to is from a different chat,
 	// unique identifier for the chat or username of the channel (in the format @channelusername)
 	//
@@ -1417,11 +1440,15 @@ type ReplyParameters struct {
 	// QuotePosition is a position of the quote in the original message in UTF-16 code units
 	//
 	// optional
-	QuotePosition int `json:"quote_position,omitempty"`
+	QuotePosition int64 `json:"quote_position,omitempty"`
 	// ChecklistTaskID identifier of a checklist task to reply to.
 	//
 	// optional
-	ChecklistTaskID int `json:"checklist_task_id,omitempty"`
+	ChecklistTaskID int64 `json:"checklist_task_id,omitempty"`
+	// PollOptionID Persistent identifier of the specific poll option to be replied to.
+	//
+	// optional
+	PollOptionID int64 `json:"poll_option_id,omitempty"`
 }
 
 const (
@@ -1460,7 +1487,7 @@ type MessageOrigin struct {
 	// Unique message identifier inside the chat
 	//
 	// Optional
-	MessageID int `json:"message_id,omitempty"`
+	MessageID int64 `json:"message_id,omitempty"`
 }
 
 func (m MessageOrigin) IsUser() bool {
@@ -1489,13 +1516,13 @@ type PhotoSize struct {
 	// or reuse the file.
 	FileUniqueID string `json:"file_unique_id"`
 	// Width photo width
-	Width int `json:"width"`
+	Width int64 `json:"width"`
 	// Height photo height
-	Height int `json:"height"`
+	Height int64 `json:"height"`
 	// FileSize file size
 	//
 	// optional
-	FileSize int `json:"file_size,omitempty"`
+	FileSize int64 `json:"file_size,omitempty"`
 }
 
 // Animation represents an animation file.
@@ -1508,11 +1535,11 @@ type Animation struct {
 	// or reuse the file.
 	FileUniqueID string `json:"file_unique_id"`
 	// Width video width as defined by sender
-	Width int `json:"width"`
+	Width int64 `json:"width"`
 	// Height video height as defined by sender
-	Height int `json:"height"`
+	Height int64 `json:"height"`
 	// Duration of the video in seconds as defined by sender
-	Duration int `json:"duration"`
+	Duration int64 `json:"duration"`
 	// Thumbnail animation thumbnail as defined by sender
 	//
 	// optional
@@ -1541,7 +1568,7 @@ type Audio struct {
 	// or reuse the file.
 	FileUniqueID string `json:"file_unique_id"`
 	// Duration of the audio in seconds as defined by sender
-	Duration int `json:"duration"`
+	Duration int64 `json:"duration"`
 	// Performer of the audio as defined by sender or by audio tags
 	//
 	// optional
@@ -1600,7 +1627,7 @@ type Story struct {
 	// Chat that posted the story
 	Chat Chat `json:"chat"`
 	// ID is an unique identifier for the story in the chat
-	ID int `json:"id"`
+	ID int64 `json:"id"`
 }
 
 // Video represents a video file.
@@ -1613,11 +1640,11 @@ type Video struct {
 	// or reuse the file.
 	FileUniqueID string `json:"file_unique_id"`
 	// Width video width as defined by sender
-	Width int `json:"width"`
+	Width int64 `json:"width"`
 	// Height video height as defined by sender
-	Height int `json:"height"`
+	Height int64 `json:"height"`
 	// Duration of the video in seconds as defined by sender
-	Duration int `json:"duration"`
+	Duration int64 `json:"duration"`
 	// Thumbnail video thumbnail
 	//
 	// optional
@@ -1659,9 +1686,9 @@ type VideoNote struct {
 	// or reuse the file.
 	FileUniqueID string `json:"file_unique_id"`
 	// Length video width and height (diameter of the video message) as defined by sender
-	Length int `json:"length"`
+	Length int64 `json:"length"`
 	// Duration of the video in seconds as defined by sender
-	Duration int `json:"duration"`
+	Duration int64 `json:"duration"`
 	// Thumbnail video thumbnail
 	//
 	// optional
@@ -1669,7 +1696,7 @@ type VideoNote struct {
 	// FileSize file size
 	//
 	// optional
-	FileSize int `json:"file_size,omitempty"`
+	FileSize int64 `json:"file_size,omitempty"`
 }
 
 // Voice represents a voice note.
@@ -1681,7 +1708,7 @@ type Voice struct {
 	// or reuse the file.
 	FileUniqueID string `json:"file_unique_id"`
 	// Duration of the audio in seconds as defined by sender
-	Duration int `json:"duration"`
+	Duration int64 `json:"duration"`
 	// MimeType of the file as defined by sender
 	//
 	// optional
@@ -1760,20 +1787,35 @@ type Dice struct {
 	// Emoji on which the dice throw animation is based
 	Emoji string `json:"emoji"`
 	// Value of the dice
-	Value int `json:"value"`
+	Value int64 `json:"value"`
 }
 
 // PollOption contains information about one answer option in a poll.
 type PollOption struct {
-	// Text is the option text, 1-100 characters
+	// PersistentID Unique identifier of the option, persistent on option addition and deletion.
+	PersistentID string `json:"persistent_id"`
+	// Text is the option text, 1-100 characters.
 	Text string `json:"text"`
-	// Special entities that appear in the option text.
-	// Currently, only custom emoji entities are allowed in poll option texts
+	// TextEntities Special entities that appear in the option text.
+	// Currently, only custom emoji entities are allowed in poll option texts.
 	//
 	// optional
 	TextEntities []MessageEntity `json:"text_entities,omitempty"`
-	// VoterCount is the number of users that voted for this option
-	VoterCount int `json:"voter_count"`
+	// VoterCount is the number of users that voted for this option.
+	VoterCount int64 `json:"voter_count"`
+	// AddedByUser User who added the option; omitted if the option wasn't added by a user after poll creation.
+	//
+	// optional
+	AddedByUser User `json:"added_by_user,omitempty"`
+	// AddedByChat Chat that added the option; omitted if the option wasn't added by a chat after poll creation.
+	//
+	// optional
+	AddedByChat Chat `json:"added_by_chat,omitempty"`
+	// AdditionDate Point in time (Unix timestamp) when the option was added;
+	// omitted if the option existed in the original poll.
+	//
+	// optional
+	AdditionDate int64 `json:"addition_date,omitempty"`
 }
 
 // InputPollOption contains information about one answer option in a poll to send.
@@ -1794,13 +1836,13 @@ type InputPollOption struct {
 
 // PollAnswer represents an answer of a user in a non-anonymous poll.
 type PollAnswer struct {
-	// PollID is the unique poll identifier
+	// PollID is the unique poll identifier.
 	PollID string `json:"poll_id"`
-	// Chat that changed the answer to the poll, if the voter is anonymous.
+	// VoterChat Chat that changed the answer to the poll, if the voter is anonymous.
 	//
 	// Optional
 	VoterChat *Chat `json:"voter_chat,omitempty"`
-	// User who changed the answer to the poll, if the voter isn't anonymous
+	// User who changed the answer to the poll, if the voter isn't anonymous.
 	// For backward compatibility, the field user in such objects
 	// will contain the user 136817688 (@Channel_Bot).
 	//
@@ -1808,7 +1850,9 @@ type PollAnswer struct {
 	User *User `json:"user,omitempty"`
 	// OptionIDs is the 0-based identifiers of poll options chosen by the user.
 	// May be empty if user retracted vote.
-	OptionIDs []int `json:"option_ids"`
+	OptionIDs []int64 `json:"option_ids"`
+	// OptionPersistentIDs Persistent identifiers of the chosen answer options. May be empty if the vote was retracted.
+	OptionPersistentIDs []int64 `json:"option_persistent_ids"`
 }
 
 // Poll contains information about a poll.
@@ -1825,7 +1869,7 @@ type Poll struct {
 	// Options is the list of poll options
 	Options []PollOption `json:"options"`
 	// TotalVoterCount is the total numbers of users who voted in the poll
-	TotalVoterCount int `json:"total_voter_count"`
+	TotalVoterCount int64 `json:"total_voter_count"`
 	// IsClosed is if the poll is closed
 	IsClosed bool `json:"is_closed"`
 	// IsAnonymous is if the poll is anonymous
@@ -1834,12 +1878,14 @@ type Poll struct {
 	Type string `json:"type"`
 	// AllowsMultipleAnswers is true, if the poll allows multiple answers
 	AllowsMultipleAnswers bool `json:"allows_multiple_answers"`
-	// CorrectOptionID is the 0-based identifier of the correct answer option.
-	// Available only for polls in quiz mode, which are closed, or was sent (not
-	// forwarded) by the bot or to the private chat with the bot.
+	// AllowsRevoting is true, if the poll allows to change the chosen answer options.
+	AllowsRevoting bool `json:"allows_revoting,omitempty"`
+	// CorrectOptionIDs Array of 0-based identifiers of the correct answer options.
+	// Available only for polls in quiz mode which are closed or were sent (not forwarded) by
+	// the bot or to the private chat with the bot.
 	//
 	// optional
-	CorrectOptionID int `json:"correct_option_id,omitempty"`
+	CorrectOptionIDs []int64 `json:"correct_option_ids,omitempty"`
 	// Explanation is text that is shown when a user chooses an incorrect answer
 	// or taps on the lamp icon in a quiz-style poll, 0-200 characters
 	//
@@ -1854,12 +1900,20 @@ type Poll struct {
 	// after creation
 	//
 	// optional
-	OpenPeriod int `json:"open_period,omitempty"`
+	OpenPeriod int64 `json:"open_period,omitempty"`
 	// CloseDate is the point in time (unix timestamp) when the poll will be
 	// automatically closed
 	//
 	// optional
 	CloseDate int64 `json:"close_date,omitempty"`
+	// Description of the poll; for polls inside the Message object only.
+	//
+	// optional
+	Description string `json:"description,omitempty"`
+	// DescriptionEntities Special entities like usernames, URLs, bot commands, etc. that appear in the description.
+	//
+	// optional
+	DescriptionEntities []MessageEntity `json:"description_entities,omitempty"`
 }
 
 // Location represents a point on the map.
@@ -1878,17 +1932,17 @@ type Location struct {
 	// Use 0x7FFFFFFF (2147483647 - max positive Int) to edit indefinitely
 	//
 	// optional
-	LivePeriod int `json:"live_period,omitempty"`
+	LivePeriod int64 `json:"live_period,omitempty"`
 	// Heading is the direction in which user is moving, in degrees; 1-360. For
 	// active live locations only.
 	//
 	// optional
-	Heading int `json:"heading,omitempty"`
+	Heading int64 `json:"heading,omitempty"`
 	// ProximityAlertRadius is the maximum distance for proximity alerts about
 	// approaching another chat member, in meters. For sent live locations only.
 	//
 	// optional
-	ProximityAlertRadius int `json:"proximity_alert_radius,omitempty"`
+	ProximityAlertRadius int64 `json:"proximity_alert_radius,omitempty"`
 }
 
 // Venue represents a venue.
@@ -1934,20 +1988,20 @@ type ProximityAlertTriggered struct {
 	// Watcher is the user that set the alert
 	Watcher User `json:"watcher"`
 	// Distance is the distance between the users
-	Distance int `json:"distance"`
+	Distance int64 `json:"distance"`
 }
 
 // MessageAutoDeleteTimerChanged represents a service message about a change in
 // auto-delete timer settings.
 type MessageAutoDeleteTimerChanged struct {
 	// New auto-delete time for messages in the chat.
-	MessageAutoDeleteTime int `json:"message_auto_delete_time"`
+	MessageAutoDeleteTime int64 `json:"message_auto_delete_time"`
 }
 
 // ChatBoostAdded represents a service message about a user boosting a chat.
 type ChatBoostAdded struct {
 	// BoostCount is a number of boosts added by the user
-	BoostCount int `json:"boost_count"`
+	BoostCount int64 `json:"boost_count"`
 }
 
 // BackgroundFill describes the way a background is filled based on the selected colors.
@@ -1963,16 +2017,16 @@ type BackgroundFill struct {
 	Type string `json:"type"`
 	// BackgroundFillSolid only.
 	// The color of the background fill in the RGB24 format
-	Color int `json:"color"`
+	Color int64 `json:"color"`
 	// BackgroundFillGradient only.
 	// Top color of the gradient in the RGB24 format
-	TopColor int `json:"top_color"`
+	TopColor int64 `json:"top_color"`
 	// BackgroundFillGradient only.
 	// Bottom color of the gradient in the RGB24 format
-	BottomColor int `json:"bottom_color"`
+	BottomColor int64 `json:"bottom_color"`
 	// BackgroundFillGradient only.
 	// Clockwise rotation angle of the background fill in degrees; 0-359
-	RotationAngle int `json:"rotation_angle"`
+	RotationAngle int64 `json:"rotation_angle"`
 	// BackgroundFillFreeformGradient only.
 	// A list of the 3 or 4 base colors that are used to generate the freeform gradient in the RGB24 format
 	Colors []int `json:"colors"`
@@ -1996,7 +2050,7 @@ type BackgroundType struct {
 	Fill BackgroundFill `json:"fill"`
 	// BackgroundTypeFill and BackgroundTypeWallpaper only.
 	// Dimming of the background in dark themes, as a percentage; 0-100
-	DarkThemeDimming int `json:"dark_theme_dimming"`
+	DarkThemeDimming int64 `json:"dark_theme_dimming"`
 	// BackgroundTypeWallpaper and BackgroundTypePattern only.
 	// Document with the wallpaper / pattern
 	Document Document `json:"document"`
@@ -2012,7 +2066,7 @@ type BackgroundType struct {
 	IsMoving bool `json:"is_moving,omitempty"`
 	// BackgroundTypePattern only.
 	// Intensity of the pattern when it is shown above the filled background; 0-100
-	Intensity int `json:"intensity"`
+	Intensity int64 `json:"intensity"`
 	// BackgroundTypePattern only.
 	// True, if the background fill must be applied only to the pattern itself.
 	// All other pixels are black in this case. For dark themes only
@@ -2036,7 +2090,7 @@ type ForumTopicCreated struct {
 	// Name is the name of topic
 	Name string `json:"name"`
 	// IconColor is the color of the topic icon in RGB format
-	IconColor int `json:"icon_color"`
+	IconColor int64 `json:"icon_color"`
 	// IconCustomEmojiID is the unique identifier of the custom emoji
 	// shown as the topic icon
 	//
@@ -2106,7 +2160,7 @@ type SharedUser struct {
 // was shared with the bot using a KeyboardButtonRequestUser button.
 type UsersShared struct {
 	// RequestID is an indentifier of the request.
-	RequestID int `json:"request_id"`
+	RequestID int64 `json:"request_id"`
 	// Users shared with the bot.
 	Users []SharedUser `json:"users"`
 }
@@ -2115,7 +2169,7 @@ type UsersShared struct {
 // was shared with the bot using a KeyboardButtonRequestChat button.
 type ChatShared struct {
 	// RequestID is an indentifier of the request.
-	RequestID int `json:"request_id"`
+	RequestID int64 `json:"request_id"`
 	// ChatID is an identifier of the shared chat.
 	ChatID int64 `json:"chat_id"`
 	// Title of the chat, if the title was requested by the bot.
@@ -2176,7 +2230,7 @@ type VideoChatStarted struct{}
 // chat.
 type VideoChatEnded struct {
 	// Voice chat duration; in seconds.
-	Duration int `json:"duration"`
+	Duration int64 `json:"duration"`
 }
 
 // VideoChatParticipantsInvited represents a service message about new members
@@ -2195,7 +2249,7 @@ type GiveawayCreated struct {
 	// for Telegram Star giveaways only
 	//
 	// optional
-	PrizeStarCount int `json:"prize_star_count,omitempty"`
+	PrizeStarCount int64 `json:"prize_star_count,omitempty"`
 }
 
 // Giveaway represents a message about a scheduled giveaway.
@@ -2207,7 +2261,7 @@ type Giveaway struct {
 	WinnersSelectionDate int64 `json:"winners_selection_date"`
 	// WinnerCount is the number of users which are supposed
 	// to be selected as winners of the giveaway
-	WinnerCount int `json:"winner_count"`
+	WinnerCount int64 `json:"winner_count"`
 	// OnlyNewMembers True, if only users who join the chats after
 	// the giveaway started should be eligible to win
 	//
@@ -2232,12 +2286,12 @@ type Giveaway struct {
 	// for Telegram Star giveaways only
 	//
 	// optional
-	PrizeStarCount int `json:"prize_star_count,omitempty"`
+	PrizeStarCount int64 `json:"prize_star_count,omitempty"`
 	// PremiumSubscriptionMonthCount the number of months the Telegram Premium
 	// subscription won from the giveaway will be active for
 	//
 	// optional
-	PremiumSubscriptionMonthCount int `json:"premium_subscription_month_count,omitempty"`
+	PremiumSubscriptionMonthCount int64 `json:"premium_subscription_month_count,omitempty"`
 }
 
 // Giveaway represents a message about a scheduled giveaway.
@@ -2245,35 +2299,35 @@ type GiveawayWinners struct {
 	// Chat that created the giveaway
 	Chat Chat `json:"chat"`
 	// GiveawayMessageID is the identifier of the messsage with the giveaway in the chat
-	GiveawayMessageID int `json:"giveaway_message_id"`
+	GiveawayMessageID int64 `json:"giveaway_message_id"`
 	// WinnersSelectionDate is point in time (Unix timestamp) when
 	// winners of the giveaway will be selected
 	WinnersSelectionDate int64 `json:"winners_selection_date"`
 	// WinnerCount is the number of users which are supposed
 	// to be selected as winners of the giveaway
-	WinnerCount int `json:"winner_count"`
+	WinnerCount int64 `json:"winner_count"`
 	// Winners is a list of up to 100 winners of the giveaway
 	Winners []User `json:"winners"`
 	// AdditionalChatCount is the number of other chats
 	// the user had to join in order to be eligible for the giveaway
 	//
 	// optional
-	AdditionalChatCount int `json:"additional_chat_count,omitempty"`
+	AdditionalChatCount int64 `json:"additional_chat_count,omitempty"`
 	// PrizeStarCount is the number of Telegram Stars to be split
 	// between giveaway winners;
 	// for Telegram Star giveaways only
 	//
 	// optional
-	PrizeStarCount int `json:"prize_star_count,omitempty"`
+	PrizeStarCount int64 `json:"prize_star_count,omitempty"`
 	// PremiumSubscriptionMonthCount the number of months the Telegram Premium
 	// subscription won from the giveaway will be active for
 	//
 	// optional
-	PremiumSubscriptionMonthCount int `json:"premium_subscription_month_count,omitempty"`
+	PremiumSubscriptionMonthCount int64 `json:"premium_subscription_month_count,omitempty"`
 	// UnclaimedPrizeCount is the number of undistributed prizes
 	//
 	// optional
-	UnclaimedPrizeCount int `json:"unclaimed_prize_count,omitempty"`
+	UnclaimedPrizeCount int64 `json:"unclaimed_prize_count,omitempty"`
 	// OnlyNewMembers True, if only users who join the chats after
 	// the giveaway started should be eligible to win
 	//
@@ -2289,14 +2343,14 @@ type GiveawayWinners struct {
 	PrizeDescription string `json:"prize_description,omitempty"`
 }
 
-// This object represents a service message about the completion of a giveaway without public winners.
+// GiveawayCompleted This object represents a service message about the completion of a giveaway without public winners.
 type GiveawayCompleted struct {
 	// Number of winners in the giveaway
-	WinnerCount int `json:"winner_count"`
+	WinnerCount int64 `json:"winner_count"`
 	// Number of undistributed prizes
 	//
 	// optional
-	UnclaimedPrizeCount int `json:"unclaimed_prize_count,omitempty"`
+	UnclaimedPrizeCount int64 `json:"unclaimed_prize_count,omitempty"`
 	// Message with the giveaway that was completed, if it wasn't deleted
 	//
 	// optional
@@ -2306,6 +2360,13 @@ type GiveawayCompleted struct {
 	//
 	// optional
 	IsStarGiveaway bool `json:"is_star_giveaway,omitempty"`
+}
+
+// ManagedBotCreated Этот объект содержит информацию о боте, который был создан для управления текущим ботом.
+type ManagedBotCreated struct {
+	// Bot Информация о боте.
+	// Токен бота можно получить с помощью метода getManagedBotToken.
+	Bot User `json:"bot"`
 }
 
 // LinkPreviewOptions describes the options used for link preview generation.
@@ -2341,7 +2402,7 @@ type LinkPreviewOptions struct {
 // UserProfilePhotos contains a set of user profile photos.
 type UserProfilePhotos struct {
 	// TotalCount total number of profile pictures the target user has
-	TotalCount int `json:"total_count"`
+	TotalCount int64 `json:"total_count"`
 	// Photos requested profile pictures (in up to 4 sizes each)
 	Photos [][]PhotoSize `json:"photos"`
 }
@@ -2368,8 +2429,30 @@ type File struct {
 // Link returns a full path to the download URL for a File.
 //
 // It requires the Bot token to create the link.
-func (f *File) Link(token string) string {
-	return fmt.Sprintf(FileEndpoint, token, f.FilePath)
+func (f *File) Link(fileEndpoint string, token string) (ret string) {
+	const (
+		rexTplLocal = "(?mi)^/.+/%s/(.*)$"
+		errRegexp   = "создание regexp для обработки uri прервано ошибкой: %s"
+	)
+	var (
+		err error
+		tpl string
+		rex *regexp.Regexp
+		tmp []string
+	)
+
+	tpl = fmt.Sprintf(rexTplLocal, token) // Создание regex содержащего токен.
+	switch rex, err = regexp.Compile(tpl); {
+	case rex != nil && err == nil:
+		if tmp = rex.FindStringSubmatch(f.FilePath); len(tmp) >= 2 {
+			f.FilePath = tmp[1]
+		}
+	case err != nil:
+		log.Printf(errRegexp, err)
+	}
+	ret = fmt.Sprintf(fileEndpoint, token, f.FilePath)
+
+	return
 }
 
 // WebAppInfo contains information about a Web App.
@@ -2453,6 +2536,13 @@ type KeyboardButton struct {
 	//
 	// optional
 	RequestChat *KeyboardButtonRequestChat `json:"request_chat,omitempty"`
+	// RequestManagedBot if specified, pressing the button will ask the user to create and share
+	// a bot that will be managed by the current bot.
+	// Available for bots that enabled management of other bots in the @BotFather Mini App.
+	// Available in private chats only.
+	//
+	// optional
+	RequestManagedBot *KeyboardButtonRequestManagedBot `json:"request_managed_bot,omitempty"`
 	// RequestContact if True, the user's phone number will be sent
 	// as a contact when the button is pressed.
 	// Available in private chats only.
@@ -2483,7 +2573,7 @@ type KeyboardButton struct {
 // with the bot when the corresponding button is pressed.
 type KeyboardButtonRequestUsers struct {
 	// RequestID is a signed 32-bit identifier of the request.
-	RequestID int `json:"request_id"`
+	RequestID int64 `json:"request_id"`
 	// UserIsBot pass True to request a bot,
 	// pass False to request a regular user.
 	// If not specified, no additional restrictions are applied.
@@ -2500,7 +2590,7 @@ type KeyboardButtonRequestUsers struct {
 	// 1-10. Defaults to 1
 	//
 	// optional
-	MaxQuantity int `json:"max_quantity,omitempty"`
+	MaxQuantity int64 `json:"max_quantity,omitempty"`
 	// RequestName pass True to request the users' first and last names
 	//
 	// optional
@@ -2520,7 +2610,7 @@ type KeyboardButtonRequestUsers struct {
 // with the bot when the corresponding button is pressed.
 type KeyboardButtonRequestChat struct {
 	// RequestID is a signed 32-bit identifier of the request.
-	RequestID int `json:"request_id"`
+	RequestID int64 `json:"request_id"`
 	// ChatIsChannel pass True to request a channel chat,
 	// pass False to request a group or a supergroup chat.
 	ChatIsChannel bool `json:"chat_is_channel"`
@@ -2571,6 +2661,23 @@ type KeyboardButtonRequestChat struct {
 	//
 	// optional
 	RequestPhoto bool `json:"request_photo,omitempty"`
+}
+
+// KeyboardButtonRequestManagedBot This object defines the parameters for the creation of a managed bot.
+// Information about the created bot will be shared with the bot using the update managed_bot and
+// a Message with the field managed_bot_created.
+type KeyboardButtonRequestManagedBot struct {
+	// RequestID Signed 32-bit identifier of the request.
+	// Must be unique within the message.
+	RequestID int32 `json:"request_id"`
+	// SuggestedName Suggested name for the bot.
+	//
+	// optional
+	SuggestedName string `json:"suggested_name,omitempty"`
+	// SuggestedUsername Suggested username for the bot.
+	//
+	// optional
+	SuggestedUsername string `json:"suggested_username,omitempty"`
 }
 
 // KeyboardButtonPollType represents type of poll, which is allowed to
@@ -2863,23 +2970,23 @@ type ChatInviteLink struct {
 	// chat simultaneously after joining the chat via this invite link; 1-99999.
 	//
 	// optional
-	MemberLimit int `json:"member_limit,omitempty"`
+	MemberLimit int64 `json:"member_limit,omitempty"`
 	// PendingJoinRequestCount is the number of pending join requests created
 	// using this link.
 	//
 	// optional
-	PendingJoinRequestCount int `json:"pending_join_request_count,omitempty"`
+	PendingJoinRequestCount int64 `json:"pending_join_request_count,omitempty"`
 	// SubscriptionPeriod is the number of seconds the subscription
 	// will be active for before the next payment
 	//
 	// optional
-	SubscriptionPeriod int `json:"subscription_period,omitempty"`
+	SubscriptionPeriod int64 `json:"subscription_period,omitempty"`
 	// SubscriptionPrice is the amount of Telegram Stars a user
 	// must pay initially and after each subsequent subscription
 	// period to be a member of the chat using the link
 	//
 	// optional
-	SubscriptionPrice int `json:"subscription_price,omitempty"`
+	SubscriptionPrice int64 `json:"subscription_price,omitempty"`
 }
 
 type ChatAdministratorRights struct {
@@ -3272,9 +3379,9 @@ func (c *ChatPermissions) CanSendMediaMessages() bool {
 // Birthdate represents a user's birthdate
 type Birthdate struct {
 	// Day of the user's birth; 1-31
-	Day int `json:"day"`
+	Day int64 `json:"day"`
 	// Month of the user's birth; 1-12
-	Month int `json:"month"`
+	Month int64 `json:"month"`
 	// Year of the user's birth
 	//
 	// optional
@@ -3311,10 +3418,10 @@ type BusinessLocation struct {
 type BusinessOpeningHoursInterval struct {
 	// OpeningMinute is the minute's sequence number in a week, starting on Monday,
 	// marking the start of the time interval during which the business is open; 0 - 7 * 24 * 60
-	OpeningMinute int `json:"opening_minute"`
+	OpeningMinute int64 `json:"opening_minute"`
 	// ClosingMinute is the minute's sequence number in a week, starting on Monday,
 	// marking the end of the time interval during which the business is open; 0 - 8 * 24 * 60
-	ClosingMinute int `json:"closing_minute"`
+	ClosingMinute int64 `json:"closing_minute"`
 }
 
 // BusinessOpeningHours represents a set of business working intervals
@@ -3371,7 +3478,7 @@ type ReactionCount struct {
 	// Type of the reaction
 	Type ReactionType `json:"type"`
 	// TotalCount number of times the reaction was added
-	TotalCount int `json:"total_count"`
+	TotalCount int64 `json:"total_count"`
 }
 
 // MessageReactionUpdated represents a change of a reaction on a message performed by a user.
@@ -3379,7 +3486,7 @@ type MessageReactionUpdated struct {
 	// Chat containing the message the user reacted to.
 	Chat Chat `json:"chat"`
 	// MessageID unique identifier of the message inside the chat.
-	MessageID int `json:"message_id"`
+	MessageID int64 `json:"message_id"`
 	// User that changed the reaction, if the user isn't anonymous.
 	//
 	// optional
@@ -3402,7 +3509,7 @@ type MessageReactionCountUpdated struct {
 	// Chat containing the message.
 	Chat Chat `json:"chat"`
 	// MessageID unique identifier of the message inside the chat.
-	MessageID int `json:"message_id"`
+	MessageID int64 `json:"message_id"`
 	// Date of the change in Unix time.
 	Date int64 `json:"date"`
 	// Reactions is a list of reactions that are present on the message.
@@ -3412,11 +3519,11 @@ type MessageReactionCountUpdated struct {
 // ForumTopic represents a forum topic.
 type ForumTopic struct {
 	// MessageThreadID is the unique identifier of the forum topic
-	MessageThreadID int `json:"message_thread_id"`
+	MessageThreadID int64 `json:"message_thread_id"`
 	// Name is the name of the topic
 	Name string `json:"name"`
 	// IconColor is the color of the topic icon in RGB format
-	IconColor int `json:"icon_color"`
+	IconColor int64 `json:"icon_color"`
 	// IconCustomEmojiID is the unique identifier of the custom emoji
 	// shown as the topic icon
 	//
@@ -3436,12 +3543,12 @@ type Gift struct {
 	Sticker Sticker `json:"sticker"`
 	// StarCount is the number of Telegram Stars that
 	// must be paid to send the sticker
-	StarCount int `json:"star_count"`
+	StarCount int64 `json:"star_count"`
 	// UpgradeStarCount is the number of Telegram Stars that
 	// must be paid to upgrade the gift to a unique one
 	//
 	// optional
-	UpgradeStarCount int `json:"upgrade_star_count,omitempty"`
+	UpgradeStarCount int64 `json:"upgrade_star_count,omitempty"`
 	// IsPremium is true for premium gifts.
 	//
 	// optional
@@ -3454,20 +3561,20 @@ type Gift struct {
 	// can be sent; for limited gifts only
 	//
 	// optional
-	TotalCount int `json:"total_count,omitempty"`
+	TotalCount int64 `json:"total_count,omitempty"`
 	// RemainingCount is the number of remaining gifts of this type that
 	// can be sent; for limited gifts only
 	//
 	// optional
-	RemainingCount int `json:"remaining_count,omitempty"`
+	RemainingCount int64 `json:"remaining_count,omitempty"`
 	// PersonalTotalCount is total number of gifts available for the current user.
 	//
 	// optional
-	PersonalTotalCount int `json:"personal_total_count,omitempty"`
+	PersonalTotalCount int64 `json:"personal_total_count,omitempty"`
 	// PersonalRemainingCount is remaining number of gifts available for the current user.
 	//
 	// optional
-	PersonalRemainingCount int `json:"personal_remaining_count,omitempty"`
+	PersonalRemainingCount int64 `json:"personal_remaining_count,omitempty"`
 	// Background is the background information of the gift.
 	//
 	// optional
@@ -3475,7 +3582,7 @@ type Gift struct {
 	// UniqueGiftVariantCount is amount of unique variants for this gift.
 	//
 	// optional
-	UniqueGiftVariantCount int `json:"unique_gift_variant_count,omitempty"`
+	UniqueGiftVariantCount int64 `json:"unique_gift_variant_count,omitempty"`
 	// PublisherChat is a chat that published this gift.
 	//
 	// optional
@@ -3557,14 +3664,14 @@ type ChatBoostSource struct {
 	// GiveawayMessageID "giveaway" only.
 	// Is an identifier of a message in the chat with the giveaway;
 	// the message could have been deleted already. May be 0 if the message isn't sent yet.
-	GiveawayMessageID int `json:"giveaway_message_id,omitempty"`
+	GiveawayMessageID int64 `json:"giveaway_message_id,omitempty"`
 	// PrizeStarCount "giveaway" only.
 	// The number of Telegram Stars to be split
 	// between giveaway winners;
 	// for Telegram Star giveaways only
 	//
 	// optional
-	PrizeStarCount int `json:"prize_star_count,omitempty"`
+	PrizeStarCount int64 `json:"prize_star_count,omitempty"`
 	// IsUnclaimed "giveaway" only.
 	// True, if the giveaway was completed, but there was no user to win the prize
 	//
@@ -3615,6 +3722,15 @@ type ChatBoostRemoved struct {
 	RemoveDate int64 `json:"remove_date"`
 	// Source of the removed boost
 	Source ChatBoostSource `json:"source"`
+}
+
+// ManagedBotUpdated A new bot was created to be managed by the bot, or token or owner of a managed bot was changed.
+type ManagedBotUpdated struct {
+	// User that created the bot.
+	User User `json:"user"`
+	// Bot Information about the bot.
+	// Token of the bot can be fetched using the method getManagedBotToken.
+	Bot User `json:"bot"`
 }
 
 // UserChatBoosts represents a list of boosts added to a chat by a user.
@@ -3671,7 +3787,7 @@ type ResponseParameters struct {
 	// before the request can be repeated.
 	//
 	// optional
-	RetryAfter int `json:"retry_after,omitempty"`
+	RetryAfter int64 `json:"retry_after,omitempty"`
 }
 
 type InputMedia interface {
@@ -3861,15 +3977,15 @@ type InputMediaVideo struct {
 	// Width video width
 	//
 	// optional
-	Width int `json:"width,omitempty"`
+	Width int64 `json:"width,omitempty"`
 	// Height video height
 	//
 	// optional
-	Height int `json:"height,omitempty"`
+	Height int64 `json:"height,omitempty"`
 	// Duration video duration
 	//
 	// optional
-	Duration int `json:"duration,omitempty"`
+	Duration int64 `json:"duration,omitempty"`
 	// SupportsStreaming pass True, if the uploaded video is suitable for streaming.
 	//
 	// optional
@@ -3891,15 +4007,15 @@ type InputMediaAnimation struct {
 	// Width video width
 	//
 	// optional
-	Width int `json:"width,omitempty"`
+	Width int64 `json:"width,omitempty"`
 	// Height video height
 	//
 	// optional
-	Height int `json:"height,omitempty"`
+	Height int64 `json:"height,omitempty"`
 	// Duration video duration
 	//
 	// optional
-	Duration int `json:"duration,omitempty"`
+	Duration int64 `json:"duration,omitempty"`
 	// HasSpoiler pass True, if the photo needs to be covered with a spoiler animation
 	//
 	// optional
@@ -3917,7 +4033,7 @@ type InputMediaAudio struct {
 	// Duration of the audio in seconds
 	//
 	// optional
-	Duration int `json:"duration,omitempty"`
+	Duration int64 `json:"duration,omitempty"`
 	// Performer of the audio
 	//
 	// optional
@@ -4017,9 +4133,9 @@ type Sticker struct {
 	// from its format, which is determined by the fields is_animated and is_video.
 	Type string `json:"type"`
 	// Width sticker width
-	Width int `json:"width"`
+	Width int64 `json:"width"`
 	// Height sticker height
-	Height int `json:"height"`
+	Height int64 `json:"height"`
 	// IsAnimated true, if the sticker is animated
 	//
 	// optional
@@ -4060,7 +4176,7 @@ type Sticker struct {
 	// FileSize
 	//
 	// optional
-	FileSize int `json:"file_size,omitempty"`
+	FileSize int64 `json:"file_size,omitempty"`
 }
 
 // IsRegular returns if the Sticker is regular
@@ -4177,11 +4293,11 @@ type Game struct {
 // GameHighScore is a user's score and position on the leaderboard.
 type GameHighScore struct {
 	// Position in high score table for the game
-	Position int `json:"position"`
+	Position int64 `json:"position"`
 	// User user
 	User User `json:"user"`
 	// Score score
-	Score int `json:"score"`
+	Score int64 `json:"score"`
 }
 
 // CallbackGame is for starting a game in an inline keyboard button.
@@ -4220,7 +4336,7 @@ type WebhookInfo struct {
 	// HasCustomCertificate true, if a custom certificate was provided for webhook certificate checks.
 	HasCustomCertificate bool `json:"has_custom_certificate"`
 	// PendingUpdateCount number of updates awaiting delivery.
-	PendingUpdateCount int `json:"pending_update_count"`
+	PendingUpdateCount int64 `json:"pending_update_count"`
 	// IPAddress is the currently used webhook IP address
 	//
 	// optional
@@ -4242,7 +4358,7 @@ type WebhookInfo struct {
 	// HTTPS connections to the webhook for update delivery.
 	//
 	// optional
-	MaxConnections int `json:"max_connections,omitempty"`
+	MaxConnections int64 `json:"max_connections,omitempty"`
 	// AllowedUpdates is a list of update types the bot is subscribed to.
 	// Defaults to all update types
 	//
@@ -4285,25 +4401,25 @@ type InlineQuery struct {
 // and ensuring only supported inline query results are used.
 type InlineQueryResults interface {
 	InlineQueryResultCachedAudio |
-	InlineQueryResultCachedDocument |
-	InlineQueryResultCachedGIF |
-	InlineQueryResultCachedMPEG4GIF |
-	InlineQueryResultCachedPhoto |
-	InlineQueryResultCachedSticker |
-	InlineQueryResultCachedVideo |
-	InlineQueryResultCachedVoice |
-	InlineQueryResultArticle |
-	InlineQueryResultAudio |
-	InlineQueryResultContact |
-	InlineQueryResultGame |
-	InlineQueryResultDocument |
-	InlineQueryResultGIF |
-	InlineQueryResultLocation |
-	InlineQueryResultMPEG4GIF |
-	InlineQueryResultPhoto |
-	InlineQueryResultVenue |
-	InlineQueryResultVideo |
-	InlineQueryResultVoice
+		InlineQueryResultCachedDocument |
+		InlineQueryResultCachedGIF |
+		InlineQueryResultCachedMPEG4GIF |
+		InlineQueryResultCachedPhoto |
+		InlineQueryResultCachedSticker |
+		InlineQueryResultCachedVideo |
+		InlineQueryResultCachedVoice |
+		InlineQueryResultArticle |
+		InlineQueryResultAudio |
+		InlineQueryResultContact |
+		InlineQueryResultGame |
+		InlineQueryResultDocument |
+		InlineQueryResultGIF |
+		InlineQueryResultLocation |
+		InlineQueryResultMPEG4GIF |
+		InlineQueryResultPhoto |
+		InlineQueryResultVenue |
+		InlineQueryResultVideo |
+		InlineQueryResultVoice
 }
 
 // InlineQueryResultCachedAudio is an inline query response with cached audio.
@@ -4641,11 +4757,11 @@ type InlineQueryResultArticle struct {
 	// ThumbWidth thumbnail width
 	//
 	// optional
-	ThumbWidth int `json:"thumbnail_width,omitempty"`
+	ThumbWidth int64 `json:"thumbnail_width,omitempty"`
 	// ThumbHeight thumbnail height
 	//
 	// optional
-	ThumbHeight int `json:"thumbnail_height,omitempty"`
+	ThumbHeight int64 `json:"thumbnail_height,omitempty"`
 }
 
 // InlineQueryResultAudio is an inline query response audio.
@@ -4680,7 +4796,7 @@ type InlineQueryResultAudio struct {
 	// Duration audio duration in seconds
 	//
 	// optional
-	Duration int `json:"audio_duration,omitempty"`
+	Duration int64 `json:"audio_duration,omitempty"`
 	// ReplyMarkup inline keyboard attached to the message
 	//
 	// optional
@@ -4702,8 +4818,8 @@ type InlineQueryResultContact struct {
 	ReplyMarkup         *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
 	InputMessageContent interface{}           `json:"input_message_content,omitempty"`
 	ThumbURL            string                `json:"thumbnail_url"`
-	ThumbWidth          int                   `json:"thumbnail_width"`
-	ThumbHeight         int                   `json:"thumbnail_height"`
+	ThumbWidth          int64                 `json:"thumbnail_width"`
+	ThumbHeight         int64                 `json:"thumbnail_height"`
 }
 
 // InlineQueryResultGame is an inline query response game.
@@ -4763,11 +4879,11 @@ type InlineQueryResultDocument struct {
 	// ThumbWidth thumbnail width
 	//
 	// optional
-	ThumbWidth int `json:"thumbnail_width,omitempty"`
+	ThumbWidth int64 `json:"thumbnail_width,omitempty"`
 	// ThumbHeight thumbnail height
 	//
 	// optional
-	ThumbHeight int `json:"thumbnail_height,omitempty"`
+	ThumbHeight int64 `json:"thumbnail_height,omitempty"`
 }
 
 // InlineQueryResultGIF is an inline query response GIF.
@@ -4785,15 +4901,15 @@ type InlineQueryResultGIF struct {
 	// Width of the GIF
 	//
 	// optional
-	Width int `json:"gif_width,omitempty"`
+	Width int64 `json:"gif_width,omitempty"`
 	// Height of the GIF
 	//
 	// optional
-	Height int `json:"gif_height,omitempty"`
+	Height int64 `json:"gif_height,omitempty"`
 	// Duration of the GIF
 	//
 	// optional
-	Duration int `json:"gif_duration,omitempty"`
+	Duration int64 `json:"gif_duration,omitempty"`
 	// Title for the result
 	//
 	// optional
@@ -4848,18 +4964,18 @@ type InlineQueryResultLocation struct {
 	// updated, should be between 60 and 86400.
 	//
 	// optional
-	LivePeriod int `json:"live_period,omitempty"`
+	LivePeriod int64 `json:"live_period,omitempty"`
 	// Heading is for live locations, a direction in which the user is moving,
 	// in degrees. Must be between 1 and 360 if specified.
 	//
 	// optional
-	Heading int `json:"heading,omitempty"`
+	Heading int64 `json:"heading,omitempty"`
 	// ProximityAlertRadius is for live locations, a maximum distance for
 	// proximity alerts about approaching another chat member, in meters. Must
 	// be between 1 and 100000 if specified.
 	//
 	// optional
-	ProximityAlertRadius int `json:"proximity_alert_radius,omitempty"`
+	ProximityAlertRadius int64 `json:"proximity_alert_radius,omitempty"`
 	// ReplyMarkup inline keyboard attached to the message
 	//
 	// optional
@@ -4875,11 +4991,11 @@ type InlineQueryResultLocation struct {
 	// ThumbWidth thumbnail width
 	//
 	// optional
-	ThumbWidth int `json:"thumbnail_width,omitempty"`
+	ThumbWidth int64 `json:"thumbnail_width,omitempty"`
 	// ThumbHeight thumbnail height
 	//
 	// optional
-	ThumbHeight int `json:"thumbnail_height,omitempty"`
+	ThumbHeight int64 `json:"thumbnail_height,omitempty"`
 }
 
 // InlineQueryResultMPEG4GIF is an inline query response MPEG4 GIF.
@@ -4893,15 +5009,15 @@ type InlineQueryResultMPEG4GIF struct {
 	// Width video width
 	//
 	// optional
-	Width int `json:"mpeg4_width,omitempty"`
+	Width int64 `json:"mpeg4_width,omitempty"`
 	// Height vVideo height
 	//
 	// optional
-	Height int `json:"mpeg4_height,omitempty"`
+	Height int64 `json:"mpeg4_height,omitempty"`
 	// Duration video duration
 	//
 	// optional
-	Duration int `json:"mpeg4_duration,omitempty"`
+	Duration int64 `json:"mpeg4_duration,omitempty"`
 	// ThumbURL url of the static (JPEG or GIF) or animated (MPEG4) thumbnail for the result.
 	ThumbURL string `json:"thumbnail_url"`
 	// MIME type of the thumbnail, must be one of "image/jpeg", "image/gif", or "video/mp4". Defaults to "image/jpeg"
@@ -4953,11 +5069,11 @@ type InlineQueryResultPhoto struct {
 	// Width of the photo
 	//
 	// optional
-	Width int `json:"photo_width,omitempty"`
+	Width int64 `json:"photo_width,omitempty"`
 	// Height of the photo
 	//
 	// optional
-	Height int `json:"photo_height,omitempty"`
+	Height int64 `json:"photo_height,omitempty"`
 	// ThumbURL url of the thumbnail for the photo.
 	//
 	// optional
@@ -5045,11 +5161,11 @@ type InlineQueryResultVenue struct {
 	// ThumbWidth thumbnail width
 	//
 	// optional
-	ThumbWidth int `json:"thumbnail_width,omitempty"`
+	ThumbWidth int64 `json:"thumbnail_width,omitempty"`
 	// ThumbHeight thumbnail height
 	//
 	// optional
-	ThumbHeight int `json:"thumbnail_height,omitempty"`
+	ThumbHeight int64 `json:"thumbnail_height,omitempty"`
 }
 
 // InlineQueryResultVideo is an inline query response video.
@@ -5090,15 +5206,15 @@ type InlineQueryResultVideo struct {
 	// Width video width
 	//
 	// optional
-	Width int `json:"video_width,omitempty"`
+	Width int64 `json:"video_width,omitempty"`
 	// Height video height
 	//
 	// optional
-	Height int `json:"video_height,omitempty"`
+	Height int64 `json:"video_height,omitempty"`
 	// Duration video duration in seconds
 	//
 	// optional
-	Duration int `json:"video_duration,omitempty"`
+	Duration int64 `json:"video_duration,omitempty"`
 	// Description short description of the result
 	//
 	// optional
@@ -5143,7 +5259,7 @@ type InlineQueryResultVoice struct {
 	// Duration recording duration in seconds
 	//
 	// optional
-	Duration int `json:"voice_duration,omitempty"`
+	Duration int64 `json:"voice_duration,omitempty"`
 	// ReplyMarkup inline keyboard attached to the message
 	//
 	// optional
@@ -5193,6 +5309,12 @@ type PreparedInlineMessage struct {
 	ExpirationDate int64 `json:"expiration_date"`
 }
 
+// PreparedKeyboardButton Describes a keyboard button to be used by a user of a Mini App.
+type PreparedKeyboardButton struct {
+	// ID Unique identifier of the keyboard button.
+	ID string `json:"id"`
+}
+
 // InputTextMessageContent contains text for displaying
 // as an inline query result.
 type InputTextMessageContent struct {
@@ -5231,18 +5353,18 @@ type InputLocationMessageContent struct {
 	// updated, should be between 60 and 86400
 	//
 	// optional
-	LivePeriod int `json:"live_period,omitempty"`
+	LivePeriod int64 `json:"live_period,omitempty"`
 	// Heading is for live locations, a direction in which the user is moving,
 	// in degrees. Must be between 1 and 360 if specified.
 	//
 	// optional
-	Heading int `json:"heading,omitempty"`
+	Heading int64 `json:"heading,omitempty"`
 	// ProximityAlertRadius is for live locations, a maximum distance for
 	// proximity alerts about approaching another chat member, in meters. Must
 	// be between 1 and 100000 if specified.
 	//
 	// optional
-	ProximityAlertRadius int `json:"proximity_alert_radius,omitempty"`
+	ProximityAlertRadius int64 `json:"proximity_alert_radius,omitempty"`
 }
 
 // InputVenueMessageContent contains a venue for displaying
@@ -5314,7 +5436,7 @@ type InputInvoiceMessageContent struct {
 	// currency (integer, not float/double).
 	//
 	// optional
-	MaxTipAmount int `json:"max_tip_amount,omitempty"`
+	MaxTipAmount int64 `json:"max_tip_amount,omitempty"`
 	// An array of suggested amounts of tip in the smallest units of the
 	// currency (integer, not float/double). At most 4 suggested tip amounts can
 	// be specified. The suggested tip amounts must be positive, passed in a
@@ -5337,15 +5459,15 @@ type InputInvoiceMessageContent struct {
 	// Photo size
 	//
 	// optional
-	PhotoSize int `json:"photo_size,omitempty"`
+	PhotoSize int64 `json:"photo_size,omitempty"`
 	// Photo width
 	//
 	// optional
-	PhotoWidth int `json:"photo_width,omitempty"`
+	PhotoWidth int64 `json:"photo_width,omitempty"`
 	// Photo height
 	//
 	// optional
-	PhotoHeight int `json:"photo_height,omitempty"`
+	PhotoHeight int64 `json:"photo_height,omitempty"`
 	// Pass True, if you require the user's full name to complete the order
 	//
 	// optional
@@ -5386,7 +5508,7 @@ type LabeledPrice struct {
 	// (https://core.telegram.org/bots/payments/currencies.json),
 	// it shows the number of digits past the decimal point
 	// for each currency (2 for the majority of currencies).
-	Amount int `json:"amount"`
+	Amount int64 `json:"amount"`
 }
 
 // Invoice contains basic information about an invoice.
@@ -5406,7 +5528,7 @@ type Invoice struct {
 	// (https://core.telegram.org/bots/payments/currencies.json),
 	// it shows the number of digits past the decimal point
 	// for each currency (2 for the majority of currencies).
-	TotalAmount int `json:"total_amount"`
+	TotalAmount int64 `json:"total_amount"`
 }
 
 // ShippingAddress represents a shipping address.
@@ -5466,7 +5588,7 @@ type SuccessfulPayment struct {
 	// (https://core.telegram.org/bots/payments/currencies.json)
 	// it shows the number of digits past the decimal point
 	// for each currency (2 for the majority of currencies).
-	TotalAmount int `json:"total_amount"`
+	TotalAmount int64 `json:"total_amount"`
 	// InvoicePayload bot specified invoice payload
 	InvoicePayload string `json:"invoice_payload"`
 	// SubscriptionExpirationDate is an expiration date of the subscription,
@@ -5544,7 +5666,7 @@ type PreCheckoutQuery struct {
 	//	// (https://core.telegram.org/bots/payments/currencies.json)
 	//	// it shows the number of digits past the decimal point
 	//	// for each currency (2 for the majority of currencies).
-	TotalAmount int `json:"total_amount"`
+	TotalAmount int64 `json:"total_amount"`
 	// InvoicePayload bot specified invoice payload
 	InvoicePayload string `json:"invoice_payload"`
 	// ShippingOptionID identifier of the shipping option chosen by the user
@@ -5599,7 +5721,7 @@ type AffiliateInfo struct {
 	// CommissionPerMile is the number of Telegram Stars received by
 	// the affiliate for each 1000 Telegram Stars received by
 	// the bot from referred users
-	CommissionPerMile int `json:"commission_per_mille"`
+	CommissionPerMile int64 `json:"commission_per_mille"`
 	// Amount is the integer amount of Telegram Stars received by
 	// the affiliate from the transaction, rounded to 0;
 	// can be negative for refunds
@@ -5667,7 +5789,7 @@ type TransactionPartner struct {
 	// PremiumSubscriptionDuration is premium subscription duration in months.
 	//
 	// optional
-	PremiumSubscriptionDuration int `json:"premium_subscription_duration,omitempty"`
+	PremiumSubscriptionDuration int64 `json:"premium_subscription_duration,omitempty"`
 	// TransactionType is kind of transaction for user partner.
 	//
 	// optional
@@ -5680,7 +5802,7 @@ type TransactionPartner struct {
 	// for each 1000 Telegram Stars received by the affiliate program sponsor.
 	//
 	// optional
-	CommissionPerMile int `json:"commission_per_mille,omitempty"`
+	CommissionPerMile int64 `json:"commission_per_mille,omitempty"`
 	// WithdrawalState is state of the transaction for outgoing Fragment withdrawals.
 	//
 	// optional
@@ -5688,7 +5810,7 @@ type TransactionPartner struct {
 	// RequestCount is the number of successful requests billed by Telegram API.
 	//
 	// optional
-	RequestCount int `json:"request_count,omitempty"`
+	RequestCount int64 `json:"request_count,omitempty"`
 }
 
 type TransactionPartnerUser struct {
@@ -5732,7 +5854,7 @@ type TransactionPartnerUser struct {
 	// PremiumSubscriptionDuration is premium subscription duration in months.
 	//
 	// optional
-	PremiumSubscriptionDuration int `json:"premium_subscription_duration,omitempty"`
+	PremiumSubscriptionDuration int64 `json:"premium_subscription_duration,omitempty"`
 }
 
 // TransactionPartnerChat describes a transaction with a chat.
@@ -5760,7 +5882,7 @@ type TransactionPartnerAffiliateProgram struct {
 	// CommissionPerMile is the number of Telegram Stars received by the bot
 	// for each 1000 Telegram Stars received by
 	// the affiliate program sponsor from referred users
-	CommissionPerMile int `json:"commission_per_mille"`
+	CommissionPerMile int64 `json:"commission_per_mille"`
 }
 
 // TransactionPartnerFragment describes a withdrawal transaction with Fragment.
@@ -5779,7 +5901,7 @@ type TransactionPartnerTelegramAPI struct {
 	Type string `json:"type,omitempty"`
 	// RequestCount is the number of successful requests that
 	// exceeded regular limits and were therefore billed
-	RequestCount int `json:"request_count"`
+	RequestCount int64 `json:"request_count"`
 }
 
 // StarTransaction describes a Telegram Star transaction.
@@ -5930,7 +6052,7 @@ type ChatOwnerChanged struct {
 
 // ChecklistTask describes a task in a checklist.
 type ChecklistTask struct {
-	ID              int             `json:"id"`
+	ID              int64           `json:"id"`
 	Text            string          `json:"text"`
 	TextEntities    []MessageEntity `json:"text_entities,omitempty"`
 	CompletedByUser *User           `json:"completed_by_user,omitempty"`
@@ -5949,7 +6071,7 @@ type Checklist struct {
 
 // InputChecklistTask describes a task input for creating/editing checklist.
 type InputChecklistTask struct {
-	ID           int             `json:"id"`
+	ID           int64           `json:"id"`
 	Text         string          `json:"text"`
 	ParseMode    string          `json:"parse_mode,omitempty"`
 	TextEntities []MessageEntity `json:"text_entities,omitempty"`
@@ -5980,18 +6102,46 @@ type ChecklistTasksAdded struct {
 
 // DirectMessagePriceChanged is a service message for direct message price changes.
 type DirectMessagePriceChanged struct {
-	AreDirectMessagesEnabled bool `json:"are_direct_messages_enabled"`
-	DirectMessageStarCount   int  `json:"direct_message_star_count,omitempty"`
+	AreDirectMessagesEnabled bool  `json:"are_direct_messages_enabled"`
+	DirectMessageStarCount   int64 `json:"direct_message_star_count,omitempty"`
 }
 
 // PaidMessagePriceChanged is a service message for paid message price changes.
 type PaidMessagePriceChanged struct {
-	PaidMessageStarCount int `json:"paid_message_star_count"`
+	PaidMessageStarCount int64 `json:"paid_message_star_count"`
+}
+
+// PollOptionAdded Describes a service message about an option added to a poll.
+type PollOptionAdded struct {
+	// PollMessage Message containing the poll to which the option was added, if known.
+	// Note that the Message object in this field will not contain the reply_to_message field even
+	// if it itself is a reply.
+	PollMessage *MaybeInaccessibleMessage `json:"poll_message,omitempty"`
+	// OptionPersistentID Unique identifier of the added option.
+	OptionPersistentID string `json:"option_persistent_id"`
+	// OptionText text.
+	OptionText string `json:"option_text,omitempty"`
+	// OptionTextEntities Special entities that appear in the option_text.
+	OptionTextEntities []MessageEntity `json:"option_text_entities,omitempty"`
+}
+
+// PollOptionDeleted Describes a service message about an option deleted from a poll.
+type PollOptionDeleted struct {
+	// PollMessage Message containing the poll to which the option was added, if known.
+	// Note that the Message object in this field will not contain the reply_to_message field even
+	// if it itself is a reply.
+	PollMessage *MaybeInaccessibleMessage `json:"poll_message,omitempty"`
+	// OptionPersistentID Unique identifier of the added option.
+	OptionPersistentID string `json:"option_persistent_id"`
+	// OptionText text.
+	OptionText string `json:"option_text,omitempty"`
+	// OptionTextEntities Special entities that appear in the option_text.
+	OptionTextEntities []MessageEntity `json:"option_text_entities,omitempty"`
 }
 
 // DirectMessagesTopic represents a direct messages topic.
 type DirectMessagesTopic struct {
-	TopicID int   `json:"topic_id"`
+	TopicID int64 `json:"topic_id"`
 	User    *User `json:"user,omitempty"`
 }
 
@@ -6006,23 +6156,23 @@ type AcceptedGiftTypes struct {
 
 // GiftBackground represents background of a gift.
 type GiftBackground struct {
-	CenterColor int `json:"center_color"`
-	EdgeColor   int `json:"edge_color"`
-	TextColor   int `json:"text_color"`
+	CenterColor int64 `json:"center_color"`
+	EdgeColor   int64 `json:"edge_color"`
+	TextColor   int64 `json:"text_color"`
 }
 
 // GiftInfo contains details of a received gift.
 type GiftInfo struct {
 	Gift                    Gift            `json:"gift"`
 	OwnedGiftID             string          `json:"owned_gift_id,omitempty"`
-	ConvertStarCount        int             `json:"convert_star_count,omitempty"`
-	PrepaidUpgradeStarCount int             `json:"prepaid_upgrade_star_count,omitempty"`
+	ConvertStarCount        int64           `json:"convert_star_count,omitempty"`
+	PrepaidUpgradeStarCount int64           `json:"prepaid_upgrade_star_count,omitempty"`
 	IsUpgradeSeparate       bool            `json:"is_upgrade_separate,omitempty"`
 	CanBeUpgraded           bool            `json:"can_be_upgraded,omitempty"`
 	Text                    string          `json:"text,omitempty"`
 	Entities                []MessageEntity `json:"entities,omitempty"`
 	IsPrivate               bool            `json:"is_private,omitempty"`
-	UniqueGiftNumber        int             `json:"unique_gift_number,omitempty"`
+	UniqueGiftNumber        int64           `json:"unique_gift_number,omitempty"`
 }
 
 // OwnedGift describes a gift owned by user/chat with flattened fields.
@@ -6038,12 +6188,12 @@ type OwnedGift struct {
 	IsSaved                 bool            `json:"is_saved,omitempty"`
 	CanBeUpgraded           bool            `json:"can_be_upgraded,omitempty"`
 	WasRefunded             bool            `json:"was_refunded,omitempty"`
-	ConvertStarCount        int             `json:"convert_star_count,omitempty"`
-	PrepaidUpgradeStarCount int             `json:"prepaid_upgrade_star_count,omitempty"`
+	ConvertStarCount        int64           `json:"convert_star_count,omitempty"`
+	PrepaidUpgradeStarCount int64           `json:"prepaid_upgrade_star_count,omitempty"`
 	IsUpgradeSeparate       bool            `json:"is_upgrade_separate,omitempty"`
-	UniqueGiftNumber        int             `json:"unique_gift_number,omitempty"`
+	UniqueGiftNumber        int64           `json:"unique_gift_number,omitempty"`
 	CanBeTransferred        bool            `json:"can_be_transferred,omitempty"`
-	TransferStarCount       int             `json:"transfer_star_count,omitempty"`
+	TransferStarCount       int64           `json:"transfer_star_count,omitempty"`
 	NextTransferDate        int64           `json:"next_transfer_date,omitempty"`
 }
 
@@ -6055,7 +6205,7 @@ type OwnedGiftUnique = OwnedGift
 
 // OwnedGifts represents paginated owned gifts list.
 type OwnedGifts struct {
-	TotalCount int         `json:"total_count"`
+	TotalCount int64       `json:"total_count"`
 	Gifts      []OwnedGift `json:"gifts"`
 	NextOffset string      `json:"next_offset,omitempty"`
 }
@@ -6097,7 +6247,7 @@ type StoryAreaType struct {
 	Name            string           `json:"name,omitempty"`
 	Temperature     float64          `json:"temperature,omitempty"`
 	Emoji           string           `json:"emoji,omitempty"`
-	BackgroundColor int              `json:"background_color,omitempty"`
+	BackgroundColor int64            `json:"background_color,omitempty"`
 }
 
 // StoryArea describes a story area.
@@ -6109,7 +6259,7 @@ type StoryArea struct {
 // SuggestedPostPrice describes suggested post price.
 type SuggestedPostPrice struct {
 	Currency string `json:"currency"`
-	Amount   int    `json:"amount"`
+	Amount   int64  `json:"amount"`
 }
 
 // SuggestedPostInfo describes state of a suggested post.
@@ -6148,7 +6298,7 @@ type SuggestedPostDeclined struct {
 type SuggestedPostPaid struct {
 	SuggestedPostMessage *Message    `json:"suggested_post_message,omitempty"`
 	Currency             string      `json:"currency"`
-	Amount               int         `json:"amount,omitempty"`
+	Amount               int64       `json:"amount,omitempty"`
 	StarAmount           *StarAmount `json:"star_amount,omitempty"`
 }
 
@@ -6162,7 +6312,7 @@ type SuggestedPostRefunded struct {
 type UniqueGiftModel struct {
 	Name           string  `json:"name"`
 	Sticker        Sticker `json:"sticker"`
-	RarityPerMille int     `json:"rarity_per_mille"`
+	RarityPerMille int64   `json:"rarity_per_mille"`
 	Rarity         string  `json:"rarity,omitempty"`
 }
 
@@ -6170,31 +6320,31 @@ type UniqueGiftModel struct {
 type UniqueGiftSymbol struct {
 	Name           string  `json:"name"`
 	Sticker        Sticker `json:"sticker"`
-	RarityPerMille int     `json:"rarity_per_mille"`
+	RarityPerMille int64   `json:"rarity_per_mille"`
 }
 
 // UniqueGiftBackdropColors describes unique gift backdrop colors.
 type UniqueGiftBackdropColors struct {
-	CenterColor int `json:"center_color"`
-	EdgeColor   int `json:"edge_color"`
-	SymbolColor int `json:"symbol_color"`
-	TextColor   int `json:"text_color"`
+	CenterColor int64 `json:"center_color"`
+	EdgeColor   int64 `json:"edge_color"`
+	SymbolColor int64 `json:"symbol_color"`
+	TextColor   int64 `json:"text_color"`
 }
 
 // UniqueGiftBackdrop describes unique gift backdrop metadata.
 type UniqueGiftBackdrop struct {
 	Name           string                   `json:"name"`
 	Colors         UniqueGiftBackdropColors `json:"colors"`
-	RarityPerMille int                      `json:"rarity_per_mille"`
+	RarityPerMille int64                    `json:"rarity_per_mille"`
 }
 
 // UniqueGiftColors describes unique gift profile colors.
 type UniqueGiftColors struct {
 	ModelCustomEmojiID    string `json:"model_custom_emoji_id"`
 	SymbolCustomEmojiID   string `json:"symbol_custom_emoji_id"`
-	LightThemeMainColor   int    `json:"light_theme_main_color"`
+	LightThemeMainColor   int64  `json:"light_theme_main_color"`
 	LightThemeOtherColors []int  `json:"light_theme_other_colors"`
-	DarkThemeMainColor    int    `json:"dark_theme_main_color"`
+	DarkThemeMainColor    int64  `json:"dark_theme_main_color"`
 	DarkThemeOtherColors  []int  `json:"dark_theme_other_colors"`
 }
 
@@ -6203,7 +6353,7 @@ type UniqueGift struct {
 	GiftID           string             `json:"gift_id"`
 	BaseName         string             `json:"base_name"`
 	Name             string             `json:"name"`
-	Number           int                `json:"number"`
+	Number           int64              `json:"number"`
 	Model            UniqueGiftModel    `json:"model"`
 	Symbol           UniqueGiftSymbol   `json:"symbol"`
 	Backdrop         UniqueGiftBackdrop `json:"backdrop"`
@@ -6219,32 +6369,32 @@ type UniqueGiftInfo struct {
 	Gift               UniqueGift `json:"gift"`
 	Origin             string     `json:"origin"`
 	LastResaleCurrency string     `json:"last_resale_currency,omitempty"`
-	LastResaleAmount   int        `json:"last_resale_amount,omitempty"`
+	LastResaleAmount   int64      `json:"last_resale_amount,omitempty"`
 	OwnedGiftID        string     `json:"owned_gift_id,omitempty"`
-	TransferStarCount  int        `json:"transfer_star_count,omitempty"`
+	TransferStarCount  int64      `json:"transfer_star_count,omitempty"`
 	NextTransferDate   int64      `json:"next_transfer_date,omitempty"`
 }
 
 // UserProfileAudios contains audios displayed on user profile.
 type UserProfileAudios struct {
-	TotalCount int     `json:"total_count"`
+	TotalCount int64   `json:"total_count"`
 	Audios     []Audio `json:"audios"`
 }
 
 // UserRating describes user rating object.
 type UserRating struct {
-	Level              int `json:"level"`
-	Rating             int `json:"rating"`
-	CurrentLevelRating int `json:"current_level_rating"`
-	NextLevelRating    int `json:"next_level_rating,omitempty"`
+	Level              int64 `json:"level"`
+	Rating             int64 `json:"rating"`
+	CurrentLevelRating int64 `json:"current_level_rating"`
+	NextLevelRating    int64 `json:"next_level_rating,omitempty"`
 }
 
 // VideoQuality describes a quality variant of a video.
 type VideoQuality struct {
 	FileID       string `json:"file_id"`
 	FileUniqueID string `json:"file_unique_id"`
-	Width        int    `json:"width"`
-	Height       int    `json:"height"`
+	Width        int64  `json:"width"`
+	Height       int64  `json:"height"`
 	Codec        string `json:"codec"`
 	FileSize     int64  `json:"file_size,omitempty"`
 }

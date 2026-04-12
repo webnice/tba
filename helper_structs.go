@@ -20,8 +20,8 @@ func (base ChatConfig) paramsWithKey(key string) (Params, error) {
 type BaseChat struct {
 	ChatConfig
 	BusinessConnectionID    BusinessConnectionID
-	MessageThreadID         int
-	DirectMessagesTopicID   int
+	MessageThreadID         int64
+	DirectMessagesTopicID   int64
 	ProtectContent          bool
 	ReplyMarkup             interface{}
 	DisableNotification     bool
@@ -42,8 +42,8 @@ func (chat *BaseChat) params() (Params, error) {
 	}
 	params.Merge(p1)
 
-	params.AddNonZero("message_thread_id", chat.MessageThreadID)
-	params.AddNonZero("direct_messages_topic_id", chat.DirectMessagesTopicID)
+	params.AddNonZeroInteger("message_thread_id", chat.MessageThreadID)
+	params.AddNonZeroInteger("direct_messages_topic_id", chat.DirectMessagesTopicID)
 	params.AddBool("disable_notification", chat.DisableNotification)
 	params.AddBool("allow_paid_broadcast", chat.AllowPaidBroadcast)
 	params.AddBool("protect_content", chat.ProtectContent)
@@ -114,7 +114,7 @@ func (spoiler BaseSpoiler) params() (Params, error) {
 // BaseChatMessage is a base type for all messages in chats.
 type BaseChatMessage struct {
 	ChatConfig
-	MessageID            int
+	MessageID            int64
 	BusinessConnectionID BusinessConnectionID
 }
 
@@ -128,7 +128,7 @@ func (base BaseChatMessage) params() (Params, error) {
 		return params, err
 	}
 	params.Merge(p1)
-	params.AddNonZero("message_id", base.MessageID)
+	params.AddNonZeroInteger("message_id", base.MessageID)
 
 	return params, err
 }
@@ -136,7 +136,7 @@ func (base BaseChatMessage) params() (Params, error) {
 // BaseChatMessages is a base type for all messages in chats.
 type BaseChatMessages struct {
 	ChatConfig
-	MessageIDs           []int
+	MessageIDs           []int64
 	BusinessConnectionID BusinessConnectionID
 }
 

@@ -1,5 +1,3 @@
-// Package tgbotapi has functions and types used for interacting with
-// the Telegram Bot API.
 package tgbotapi
 
 import (
@@ -16,73 +14,51 @@ import (
 	"time"
 )
 
-// HTTPClient is the type needed for the bot to perform HTTP requests.
-type HTTPClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
+// NewBotAPIWithClient Создание нового экземпляра объекта взаимодействия с API телеграм.
+func NewBotAPIWithClient(token string, coreApi string, fileApi string, client HTTPClient) (bot *BotAPI, err error) {
+	const defaultBufferLength = 100
 
-// BotAPI allows you to interact with the Telegram Bot API.
-type BotAPI struct {
-	Token  string `json:"token"`
-	Debug  bool   `json:"debug"`
-	Buffer int    `json:"buffer"`
-
-	Self   User       `json:"-"`
-	Client HTTPClient `json:"-"`
-
-	apiEndpoint string
-
-	stoppers []context.CancelFunc
-	mu       sync.RWMutex
-}
-
-// NewBotAPI creates a new BotAPI instance.
-//
-// It requires a token, provided by @BotFather on Telegram.
-func NewBotAPI(token string) (*BotAPI, error) {
-	return NewBotAPIWithClient(token, APIEndpoint, &http.Client{})
-}
-
-// NewBotAPIWithAPIEndpoint creates a new BotAPI instance
-// and allows you to pass API endpoint.
-//
-// It requires a token, provided by @BotFather on Telegram and API endpoint.
-func NewBotAPIWithAPIEndpoint(token, apiEndpoint string) (*BotAPI, error) {
-	return NewBotAPIWithClient(token, apiEndpoint, &http.Client{})
-}
-
-// NewBotAPIWithClient creates a new BotAPI instance
-// and allows you to pass a http.Client.
-//
-// It requires a token, provided by @BotFather on Telegram and API endpoint.
-func NewBotAPIWithClient(token, apiEndpoint string, client HTTPClient) (*BotAPI, error) {
-	bot := &BotAPI{
-		Token:  token,
-		Client: client,
-		Buffer: 100,
-
-		apiEndpoint: apiEndpoint,
+	if coreApi == "" {
+		coreApi = defaultEndpointApi
+	}
+	if fileApi == "" {
+		fileApi = defaultEndpointFile
+	}
+	if client == nil {
+		client = &http.Client{}
+	}
+	bot = &BotAPI{
+		Token:        token,
+		BufferLength: defaultBufferLength,
+		Client:       client,
+		endpointApi:  coreApi,
+		endpointFile: fileApi,
+		stoppers:     make([]context.CancelFunc, 0, 4),
+		stoppersMux:  new(sync.RWMutex),
+	}
+	if bot.Self, err = bot.
+		GetMe(); err != nil {
+		return
 	}
 
-	self, err := bot.GetMe()
-	if err != nil {
-		return nil, err
-	}
-
-	bot.Self = self
-
-	return bot, nil
+	return
 }
 
-// SetAPIEndpoint changes the Telegram Bot API endpoint used by the instance.
-func (bot *BotAPI) SetAPIEndpoint(apiEndpoint string) {
-	bot.apiEndpoint = apiEndpoint
+// NewBotAPIWithAPIEndpoint Создание нового экземпляра объекта взаимодействия с API телеграм.
+func NewBotAPIWithAPIEndpoint(token string, coreApi string, fileApi string) (*BotAPI, error) {
+	return NewBotAPIWithClient(token, coreApi, fileApi, nil)
 }
 
-// SetAPIEndpoint changes the Telegram Bot API update chan buffer used by the instance.
-func (bot *BotAPI) SetUpdatesBuffer(capacity int) {
-	bot.Buffer = capacity
+// NewBotAPI Создание нового экземпляра объекта взаимодействия с API телеграм.
+func NewBotAPI(token string) (*BotAPI, error) { return NewBotAPIWithClient(token, "", "", nil) }
+
+// SetEndpointApi Изменение адреса API телеграм.
+func (bot *BotAPI) SetEndpointApi(coreApi string, fileApi string) {
+	bot.endpointApi, bot.endpointFile = coreApi, fileApi
 }
+
+// SetUpdatesBufferLength Изменение размера буфера обновлений.
+func (bot *BotAPI) SetUpdatesBufferLength(capacity int64) { bot.BufferLength = capacity }
 
 func buildParams(in Params) url.Values {
 	if in == nil {
@@ -108,7 +84,7 @@ func (bot *BotAPI) MakeRequestWithContext(ctx context.Context, endpoint string, 
 		log.Printf("Endpoint: %s, params: %v\n", endpoint, params)
 	}
 
-	method := fmt.Sprintf(bot.apiEndpoint, bot.Token, endpoint)
+	method := fmt.Sprintf(bot.endpointApi, bot.Token, endpoint)
 
 	values := buildParams(params)
 
@@ -236,7 +212,7 @@ func (bot *BotAPI) UploadFilesWithContext(ctx context.Context, endpoint string, 
 		log.Printf("Endpoint: %s, params: %v, with %d files\n", endpoint, params, len(files))
 	}
 
-	method := fmt.Sprintf(bot.apiEndpoint, bot.Token, endpoint)
+	method := fmt.Sprintf(bot.endpointApi, bot.Token, endpoint)
 
 	req, err := http.NewRequestWithContext(ctx, "POST", method, r)
 	if err != nil {
@@ -280,34 +256,30 @@ func (bot *BotAPI) UploadFilesWithContext(ctx context.Context, endpoint string, 
 // GetFileDirectURL returns direct URL to file
 //
 // It requires the FileID.
-func (bot *BotAPI) GetFileDirectURL(fileID string) (string, error) {
-	file, err := bot.GetFile(FileConfig{fileID})
-	if err != nil {
-		return "", err
-	}
+func (bot *BotAPI) GetFileDirectURL(fileID string) (ret string, err error) {
+	var file File
 
-	return file.Link(bot.Token), nil
+	if file, err = bot.GetFile(FileConfig{fileID}); err != nil {
+		return
+	}
+	ret = file.Link(bot.endpointFile, bot.Token)
+
+	return
 }
 
-// GetMe fetches the currently authenticated bot.
-//
-// This method is called upon creation to validate the token,
-// and so you may get this data from BotAPI.Self without the need for
-// another request.
-func (bot *BotAPI) GetMe() (User, error) {
-	return bot.GetMeWithContext(context.Background())
-}
+// GetMe Получение информации о телеграм боте с сервера телеграм.
+func (bot *BotAPI) GetMe() (User, error) { return bot.GetMeWithContext(context.Background()) }
 
-func (bot *BotAPI) GetMeWithContext(ctx context.Context) (User, error) {
-	resp, err := bot.MakeRequestWithContext(ctx, "getMe", nil)
-	if err != nil {
-		return User{}, err
+// GetMeWithContext Получение информации о телеграм боте с сервера телеграм.
+func (bot *BotAPI) GetMeWithContext(ctx context.Context) (ret User, err error) {
+	var resp *APIResponse
+
+	if resp, err = bot.MakeRequestWithContext(ctx, "getMe", nil); err != nil {
+		return
 	}
+	err = json.Unmarshal(resp.Result, &ret)
 
-	var user User
-	err = json.Unmarshal(resp.Result, &user)
-
-	return user, err
+	return
 }
 
 // IsMessageToMe returns true if message directed to this bot.
@@ -357,18 +329,16 @@ func (bot *BotAPI) RequestWithContext(ctx context.Context, c Chattable) (*APIRes
 	return bot.MakeRequestWithContext(ctx, c.method(), params)
 }
 
-// Send will send a Chattable item to Telegram and provides the
-// returned Message.
-func (bot *BotAPI) Send(c Chattable) (Message, error) {
-	resp, err := bot.Request(c)
-	if err != nil {
-		return Message{}, err
-	}
+// Send Отправка сообщения и получение результата.
+func (bot *BotAPI) Send(c Chattable) (message Message, err error) {
+	var resp *APIResponse
 
-	var message Message
+	if resp, err = bot.Request(c); err != nil {
+		return
+	}
 	err = json.Unmarshal(resp.Result, &message)
 
-	return message, err
+	return
 }
 
 // SendMediaGroup sends a media group and returns the resulting messages.
@@ -490,68 +460,89 @@ func (bot *BotAPI) GetUpdatesWithContext(ctx context.Context, config UpdateConfi
 	return updates, err
 }
 
-// GetWebhookInfo allows you to fetch information about a webhook and if
-// one currently is set, along with pending update count and error messages.
+// GetWebhookInfo Запрос информации о вебхуке с сервера телеграм.
 func (bot *BotAPI) GetWebhookInfo() (WebhookInfo, error) {
 	return bot.GetWebhookInfoWithContext(context.Background())
 }
 
-func (bot *BotAPI) GetWebhookInfoWithContext(ctx context.Context) (WebhookInfo, error) {
-	resp, err := bot.MakeRequestWithContext(ctx, "getWebhookInfo", nil)
-	if err != nil {
-		return WebhookInfo{}, err
+// GetWebhookInfoWithContext Запрос информации о вебхуке с сервера телеграм с возможностью прерывания через контекст.
+func (bot *BotAPI) GetWebhookInfoWithContext(ctx context.Context) (ret WebhookInfo, err error) {
+	const (
+		keyGetWebhookInfo = "getWebhookInfo"
+		errUnmarshal      = "декодирование json прервано ошибкой: %s"
+	)
+	var rsp *APIResponse
+
+	if rsp, err = bot.
+		MakeRequestWithContext(ctx, keyGetWebhookInfo, nil); err != nil {
+		return
+	}
+	if err = json.Unmarshal(rsp.Result, &ret); err != nil {
+		err = fmt.Errorf(errUnmarshal, err)
+		return
 	}
 
-	var info WebhookInfo
-	err = json.Unmarshal(resp.Result, &info)
-
-	return info, err
+	return
 }
 
-// GetUpdatesChan starts and returns a channel for getting updates.
+// GetUpdatesChan Запуск горутины и возврат канала для получения обновлений от сервера телеграм.
 func (bot *BotAPI) GetUpdatesChan(config UpdateConfig) UpdatesChannel {
-	ch := make(chan Update, bot.Buffer)
+	const (
+		retryTimeout           = time.Second * 3
+		errBadRecordMac        = "bad record MAC"
+		errTlsHandshakeTimeout = "TLS handshake timeout"
+	)
+	var (
+		ch  chan Update
+		ctx context.Context
+		cfn context.CancelFunc
+	)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	bot.mu.Lock()
-	bot.stoppers = append(bot.stoppers, cancel)
-	bot.mu.Unlock()
+	ch = make(chan Update, bot.BufferLength)
+	ctx, cfn = context.WithCancel(context.Background())
+	bot.stoppersMux.Lock()
+	defer bot.stoppersMux.Unlock()
+	bot.stoppers = append(bot.stoppers, cfn)
+	go func(chUpd chan<- Update) {
+		var (
+			err     error
+			updates []Update
+			upd     Update
+		)
 
-	go func() {
 		for {
 			select {
 			case <-ctx.Done():
-				close(ch)
+				close(chUpd)
 				return
 			default:
 			}
-
-			updates, err := bot.GetUpdatesWithContext(ctx, config)
-			if err != nil {
+			if updates, err = bot.GetUpdatesWithContext(ctx, config); err != nil && !errors.Is(err, io.EOF) {
 				if ctx.Err() == nil {
-					log.Println(err)
-					log.Println("Failed to get updates, retrying in 3 seconds...")
-					time.Sleep(time.Second * 3)
+					if !strings.Contains(err.Error(), errBadRecordMac) ||
+						!strings.Contains(err.Error(), errTlsHandshakeTimeout) {
+						log.Println(err)
+					}
+					time.Sleep(retryTimeout)
 				}
 				continue
 			}
-
-			for _, update := range updates {
-				if update.UpdateID >= config.Offset {
-					config.Offset = update.UpdateID + 1
-					ch <- update
+			for _, upd = range updates {
+				if upd.UpdateID >= config.Offset {
+					config.Offset = upd.UpdateID + 1
+					chUpd <- upd
 				}
 			}
 		}
-	}()
+	}(ch)
 
 	return ch
 }
 
 // StopReceivingUpdates stops the go routine which receives updates
 func (bot *BotAPI) StopReceivingUpdates() {
-	bot.mu.Lock()
-	defer bot.mu.Unlock()
+	bot.stoppersMux.Lock()
+	defer bot.stoppersMux.Unlock()
 
 	if bot.Debug {
 		log.Println("Stopping the update receiver routine...")
@@ -563,7 +554,7 @@ func (bot *BotAPI) StopReceivingUpdates() {
 
 // ListenForWebhook registers a http handler for a webhook.
 func (bot *BotAPI) ListenForWebhook(pattern string) UpdatesChannel {
-	ch := make(chan Update, bot.Buffer)
+	ch := make(chan Update, bot.BufferLength)
 
 	http.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		update, err := bot.HandleUpdate(r)
@@ -583,7 +574,7 @@ func (bot *BotAPI) ListenForWebhook(pattern string) UpdatesChannel {
 
 // ListenForWebhookRespReqFormat registers a http handler for a single incoming webhook.
 func (bot *BotAPI) ListenForWebhookRespReqFormat(w http.ResponseWriter, r *http.Request) UpdatesChannel {
-	ch := make(chan Update, bot.Buffer)
+	ch := make(chan Update, bot.BufferLength)
 
 	func(w http.ResponseWriter, r *http.Request) {
 		defer close(ch)
@@ -936,6 +927,22 @@ func SavePreparedInlineMessage[T InlineQueryResults](bot *BotAPI, config SavePre
 	err = json.Unmarshal(resp.Result, &preparedInlineMessage)
 
 	return preparedInlineMessage, err
+}
+
+// SavePreparedKeyboardButton Stores a keyboard button that can be used by a user within a Mini App.
+// Returns a PreparedKeyboardButton object.
+func (bot *BotAPI) SavePreparedKeyboardButton(config SavePreparedKeyboardButtonConfig) (
+	ret PreparedKeyboardButton,
+	err error,
+) {
+	var resp *APIResponse
+
+	if resp, err = bot.Request(config); err != nil {
+		return
+	}
+	err = json.Unmarshal(resp.Result, &ret)
+
+	return
 }
 
 // EscapeText takes an input text and escape Telegram markup symbols.

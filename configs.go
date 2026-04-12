@@ -9,127 +9,12 @@ import (
 	"strconv"
 )
 
-// Telegram constants
-const (
-	// APIEndpoint is the endpoint for all API methods,
-	// with formatting for Sprintf.
-	APIEndpoint = "https://api.telegram.org/bot%s/%s"
-	// FileEndpoint is the endpoint for downloading a file from Telegram.
-	FileEndpoint = "https://api.telegram.org/file/bot%s/%s"
-)
-
-// Constant values for ChatActions
-const (
-	ChatTyping          = "typing"
-	ChatUploadPhoto     = "upload_photo"
-	ChatRecordVideo     = "record_video"
-	ChatUploadVideo     = "upload_video"
-	ChatRecordVoice     = "record_voice"
-	ChatUploadVoice     = "upload_voice"
-	ChatUploadDocument  = "upload_document"
-	ChatChooseSticker   = "choose_sticker"
-	ChatFindLocation    = "find_location"
-	ChatRecordVideoNote = "record_video_note"
-	ChatUploadVideoNote = "upload_video_note"
-)
-
 // API errors
 const (
 	// ErrAPIForbidden happens when a token is bad
 	ErrAPIForbidden = "forbidden"
 )
 
-// Constant values for ParseMode in MessageConfig
-const (
-	ModeMarkdown   = "Markdown"
-	ModeMarkdownV2 = "MarkdownV2"
-	ModeHTML       = "HTML"
-)
-
-// Constant values for update types
-const (
-	// UpdateTypeMessage is new incoming message of any kind — text, photo, sticker, etc.
-	UpdateTypeMessage = "message"
-
-	// UpdateTypeEditedMessage is new version of a message that is known to the bot and was edited
-	UpdateTypeEditedMessage = "edited_message"
-
-	// UpdateTypeChannelPost is new incoming channel post of any kind — text, photo, sticker, etc.
-	UpdateTypeChannelPost = "channel_post"
-
-	// UpdateTypeEditedChannelPost is new version of a channel post that is known to the bot and was edited
-	UpdateTypeEditedChannelPost = "edited_channel_post"
-
-	// UpdateTypeBusinessConnection is the bot was connected to or disconnected from a business account,
-	// or a user edited an existing connection with the bot
-	UpdateTypeBusinessConnection = "business_connection"
-
-	// UpdateTypeBusinessMessage is a new non-service message from a connected business account
-	UpdateTypeBusinessMessage = "business_message"
-
-	// UpdateTypeEditedBusinessMessage is a new version of a message from a connected business account
-	UpdateTypeEditedBusinessMessage = "edited_business_message"
-
-	// UpdateTypeDeletedBusinessMessages are the messages were deleted from a connected business account
-	UpdateTypeDeletedBusinessMessages = "deleted_business_messages"
-
-	// UpdateTypeMessageReactionis is a reaction to a message was changed by a user
-	UpdateTypeMessageReaction = "message_reaction"
-
-	// UpdateTypeMessageReactionCount are reactions to a message with anonymous reactions were changed
-	UpdateTypeMessageReactionCount = "message_reaction_count"
-
-	// UpdateTypeInlineQuery is new incoming inline query
-	UpdateTypeInlineQuery = "inline_query"
-
-	// UpdateTypeChosenInlineResult i the result of an inline query that was chosen by a user and sent to their
-	// chat partner. Please see the documentation on the feedback collecting for
-	// details on how to enable these updates for your bot.
-	UpdateTypeChosenInlineResult = "chosen_inline_result"
-
-	// UpdateTypeCallbackQuery is new incoming callback query
-	UpdateTypeCallbackQuery = "callback_query"
-
-	// UpdateTypeShippingQuery is new incoming shipping query. Only for invoices with flexible price
-	UpdateTypeShippingQuery = "shipping_query"
-
-	// UpdateTypePreCheckoutQuery is new incoming pre-checkout query. Contains full information about checkout
-	UpdateTypePreCheckoutQuery = "pre_checkout_query"
-
-	// UpdateTypePurchasedPaidMedia is a user purchased paid media with a non-empty payload
-	// sent by the bot in a non-channel chat
-	UpdateTypePurchasedPaidMedia = "purchased_paid_media"
-
-	// UpdateTypePoll is new poll state. Bots receive only updates about stopped polls and polls
-	// which are sent by the bot
-	UpdateTypePoll = "poll"
-
-	// UpdateTypePollAnswer is when user changed their answer in a non-anonymous poll. Bots receive new votes
-	// only in polls that were sent by the bot itself.
-	UpdateTypePollAnswer = "poll_answer"
-
-	// UpdateTypeMyChatMember is when the bot's chat member status was updated in a chat. For private chats, this
-	// update is received only when the bot is blocked or unblocked by the user.
-	UpdateTypeMyChatMember = "my_chat_member"
-
-	// UpdateTypeChatMember is when the bot must be an administrator in the chat and must explicitly specify
-	// this update in the list of allowed_updates to receive these updates.
-	UpdateTypeChatMember = "chat_member"
-
-	// UpdateTypeChatJoinRequest is request to join the chat has been sent.
-	// The bot must have the can_invite_users administrator right in the chat to receive these updates.
-	UpdateTypeChatJoinRequest = "chat_join_request"
-
-	// UpdateTypeChatBoost is chat boost was added or changed.
-	// The bot must be an administrator in the chat to receive these updates.
-	UpdateTypeChatBoost = "chat_boost"
-
-	// UpdateTypeRemovedChatBoost is boost was removed from a chat.
-	// The bot must be an administrator in the chat to receive these updates.
-	UpdateTypeRemovedChatBoost = "removed_chat_boost"
-)
-
-// Library errors
 const (
 	ErrBadURL = "bad or empty url"
 )
@@ -351,8 +236,8 @@ func (config SendChecklistConfig) params() (Params, error) {
 // SendMessageDraftConfig allows you to send a draft message.
 type SendMessageDraftConfig struct {
 	ChatConfig
-	MessageThreadID int
-	DraftID         int
+	MessageThreadID int64
+	DraftID         int64
 	Text            string
 	ParseMode       string
 	Entities        []MessageEntity
@@ -368,8 +253,8 @@ func (config SendMessageDraftConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero("message_thread_id", config.MessageThreadID)
-	params.AddNonZero("draft_id", config.DraftID)
+	params.AddNonZeroInteger("message_thread_id", config.MessageThreadID)
+	params.AddNonZeroInteger("draft_id", config.DraftID)
 	params["text"] = config.Text
 	params.AddNonEmpty("parse_mode", config.ParseMode)
 	err = params.AddInterface("entities", config.Entities)
@@ -381,7 +266,7 @@ func (config SendMessageDraftConfig) params() (Params, error) {
 type ForwardConfig struct {
 	BaseChat
 	FromChat            ChatConfig
-	MessageID           int // required
+	MessageID           int64 // required
 	VideoStartTimestamp int64
 }
 
@@ -395,8 +280,8 @@ func (config ForwardConfig) params() (Params, error) {
 		return params, err
 	}
 	params.Merge(p1)
-	params.AddNonZero("message_id", config.MessageID)
-	params.AddNonZero64("video_start_timestamp", config.VideoStartTimestamp)
+	params.AddNonZeroInteger("message_id", config.MessageID)
+	params.AddNonZeroInteger("video_start_timestamp", config.VideoStartTimestamp)
 
 	return params, nil
 }
@@ -437,7 +322,7 @@ func (config ForwardMessagesConfig) method() string {
 type CopyMessageConfig struct {
 	BaseChat
 	FromChat              ChatConfig
-	MessageID             int
+	MessageID             int64
 	VideoStartTimestamp   int64
 	Caption               string
 	ParseMode             string
@@ -456,8 +341,8 @@ func (config CopyMessageConfig) params() (Params, error) {
 		return params, err
 	}
 	params.Merge(p1)
-	params.AddNonZero("message_id", config.MessageID)
-	params.AddNonZero64("video_start_timestamp", config.VideoStartTimestamp)
+	params.AddNonZeroInteger("message_id", config.MessageID)
+	params.AddNonZeroInteger("video_start_timestamp", config.VideoStartTimestamp)
 	params.AddNonEmpty("caption", config.Caption)
 	params.AddNonEmpty("parse_mode", config.ParseMode)
 	params.AddBool("show_caption_above_media", config.ShowCaptionAboveMedia)
@@ -561,7 +446,7 @@ type AudioConfig struct {
 	Caption         string
 	ParseMode       string
 	CaptionEntities []MessageEntity
-	Duration        int
+	Duration        int64
 	Performer       string
 	Title           string
 }
@@ -572,7 +457,7 @@ func (config AudioConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero("duration", config.Duration)
+	params.AddNonZeroInteger("duration", config.Duration)
 	params.AddNonEmpty("performer", config.Performer)
 	params.AddNonEmpty("title", config.Title)
 	params.AddNonEmpty("caption", config.Caption)
@@ -681,7 +566,7 @@ type VideoConfig struct {
 	BaseFile
 	BaseSpoiler
 	Thumb                 RequestFileData
-	Duration              int
+	Duration              int64
 	Cover                 RequestFileData
 	StartTimestamp        int64
 	Caption               string
@@ -697,8 +582,8 @@ func (config VideoConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero("duration", config.Duration)
-	params.AddNonZero64("start_timestamp", config.StartTimestamp)
+	params.AddNonZeroInteger("duration", config.Duration)
+	params.AddNonZeroInteger("start_timestamp", config.StartTimestamp)
 	params.AddNonEmpty("caption", config.Caption)
 	params.AddNonEmpty("parse_mode", config.ParseMode)
 	params.AddBool("supports_streaming", config.SupportsStreaming)
@@ -747,7 +632,7 @@ func (config VideoConfig) files() []RequestFile {
 type AnimationConfig struct {
 	BaseFile
 	BaseSpoiler
-	Duration              int
+	Duration              int64
 	Thumb                 RequestFileData
 	Caption               string
 	ParseMode             string
@@ -761,7 +646,7 @@ func (config AnimationConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero("duration", config.Duration)
+	params.AddNonZeroInteger("duration", config.Duration)
 	params.AddNonEmpty("caption", config.Caption)
 	params.AddNonEmpty("parse_mode", config.ParseMode)
 	params.AddBool("show_caption_above_media", config.ShowCaptionAboveMedia)
@@ -803,15 +688,15 @@ func (config AnimationConfig) files() []RequestFile {
 type VideoNoteConfig struct {
 	BaseFile
 	Thumb    RequestFileData
-	Duration int
-	Length   int
+	Duration int64
+	Length   int64
 }
 
 func (config VideoNoteConfig) params() (Params, error) {
 	params, err := config.BaseChat.params()
 
-	params.AddNonZero("duration", config.Duration)
-	params.AddNonZero("length", config.Length)
+	params.AddNonZeroInteger("duration", config.Duration)
+	params.AddNonZeroInteger("length", config.Length)
 
 	return params, err
 }
@@ -853,7 +738,7 @@ func (config PaidMediaConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero64("star_count", config.StarCount)
+	params.AddNonZeroInteger("star_count", config.StarCount)
 	params.AddNonEmpty("caption", config.Caption)
 	params.AddNonEmpty("parse_mode", config.ParseMode)
 	params.AddBool("show_caption_above_media", config.ShowCaptionAboveMedia)
@@ -899,7 +784,7 @@ type VoiceConfig struct {
 	Caption         string
 	ParseMode       string
 	CaptionEntities []MessageEntity
-	Duration        int
+	Duration        int64
 }
 
 func (config VoiceConfig) params() (Params, error) {
@@ -908,7 +793,7 @@ func (config VoiceConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero("duration", config.Duration)
+	params.AddNonZeroInteger("duration", config.Duration)
 	params.AddNonEmpty("caption", config.Caption)
 	params.AddNonEmpty("parse_mode", config.ParseMode)
 	err = params.AddInterface("caption_entities", config.CaptionEntities)
@@ -942,9 +827,9 @@ type LocationConfig struct {
 	Latitude             float64 // required
 	Longitude            float64 // required
 	HorizontalAccuracy   float64 // optional
-	LivePeriod           int     // optional
-	Heading              int     // optional
-	ProximityAlertRadius int     // optional
+	LivePeriod           int64   // optional
+	Heading              int64   // optional
+	ProximityAlertRadius int64   // optional
 }
 
 func (config LocationConfig) params() (Params, error) {
@@ -953,9 +838,9 @@ func (config LocationConfig) params() (Params, error) {
 	params.AddNonZeroFloat("latitude", config.Latitude)
 	params.AddNonZeroFloat("longitude", config.Longitude)
 	params.AddNonZeroFloat("horizontal_accuracy", config.HorizontalAccuracy)
-	params.AddNonZero("live_period", config.LivePeriod)
-	params.AddNonZero("heading", config.Heading)
-	params.AddNonZero("proximity_alert_radius", config.ProximityAlertRadius)
+	params.AddNonZeroInteger("live_period", config.LivePeriod)
+	params.AddNonZeroInteger("heading", config.Heading)
+	params.AddNonZeroInteger("proximity_alert_radius", config.ProximityAlertRadius)
 
 	return params, err
 }
@@ -969,10 +854,10 @@ type EditMessageLiveLocationConfig struct {
 	BaseEdit
 	Latitude             float64 // required
 	Longitude            float64 // required
-	LivePeriod           int     // optional
+	LivePeriod           int64   // optional
 	HorizontalAccuracy   float64 // optional
-	Heading              int     // optional
-	ProximityAlertRadius int     // optional
+	Heading              int64   // optional
+	ProximityAlertRadius int64   // optional
 }
 
 func (config EditMessageLiveLocationConfig) params() (Params, error) {
@@ -981,9 +866,9 @@ func (config EditMessageLiveLocationConfig) params() (Params, error) {
 	params.AddNonZeroFloat("latitude", config.Latitude)
 	params.AddNonZeroFloat("longitude", config.Longitude)
 	params.AddNonZeroFloat("horizontal_accuracy", config.HorizontalAccuracy)
-	params.AddNonZero("heading", config.Heading)
-	params.AddNonZero("live_period", config.LivePeriod)
-	params.AddNonZero("proximity_alert_radius", config.ProximityAlertRadius)
+	params.AddNonZeroInteger("heading", config.Heading)
+	params.AddNonZeroInteger("live_period", config.LivePeriod)
+	params.AddNonZeroInteger("proximity_alert_radius", config.ProximityAlertRadius)
 
 	return params, err
 }
@@ -1062,51 +947,70 @@ func (config ContactConfig) method() string {
 	return "sendContact"
 }
 
-// SendPollConfig allows you to send a poll.
+// SendPollConfig Используйте этот метод для отправки собственного опроса.
+// В случае успеха отправленное сообщение возвращается.
 type SendPollConfig struct {
 	BaseChat
-	Question              string
-	QuestionParseMode     string          // optional
-	QuestionEntities      []MessageEntity // optional
-	Options               []InputPollOption
-	IsAnonymous           bool
-	Type                  string
-	AllowsMultipleAnswers bool
-	CorrectOptionID       int64
-	Explanation           string
-	ExplanationParseMode  string
-	ExplanationEntities   []MessageEntity
-	OpenPeriod            int
-	CloseDate             int64
-	IsClosed              bool
+	Question               string
+	QuestionParseMode      string
+	QuestionEntities       []MessageEntity
+	Options                []InputPollOption
+	IsAnonymous            bool
+	Type                   string
+	AllowsMultipleAnswers  bool
+	AllowsRevoting         bool
+	ShuffleOptions         bool
+	AllowAddingOptions     bool
+	HideResultsUntilCloses bool
+	CorrectOptionIDs       []int64
+	Explanation            string
+	ExplanationParseMode   string
+	ExplanationEntities    []MessageEntity
+	OpenPeriod             int64
+	CloseDate              int64
+	IsClosed               bool
+	Description            string
+	DescriptionParseMode   string
+	DescriptionEntities    []MessageEntity
 }
 
-func (config SendPollConfig) params() (Params, error) {
-	params, err := config.BaseChat.params()
-	if err != nil {
-		return params, err
+func (config SendPollConfig) params() (params Params, err error) {
+	if params, err = config.BaseChat.params(); err != nil {
+		return
 	}
-
 	params["question"] = config.Question
 	params.AddNonEmpty("question_parse_mode", config.QuestionParseMode)
 	if err = params.AddInterface("question_entities", config.QuestionEntities); err != nil {
-		return params, err
+		return
 	}
 	if err = params.AddInterface("options", config.Options); err != nil {
-		return params, err
+		return
 	}
 	params["is_anonymous"] = strconv.FormatBool(config.IsAnonymous)
 	params.AddNonEmpty("type", config.Type)
 	params["allows_multiple_answers"] = strconv.FormatBool(config.AllowsMultipleAnswers)
-	params["correct_option_id"] = strconv.FormatInt(config.CorrectOptionID, 10)
-	params.AddBool("is_closed", config.IsClosed)
+	params.AddBool("allows_revoting", config.AllowsRevoting)
+	params.AddBool("shuffle_options", config.ShuffleOptions)
+	params.AddBool("allow_adding_options", config.AllowAddingOptions)
+	params.AddBool("hide_results_until_closes", config.HideResultsUntilCloses)
+	if err = params.AddInterface("correct_option_ids", config.CorrectOptionIDs); err != nil {
+		return
+	}
 	params.AddNonEmpty("explanation", config.Explanation)
 	params.AddNonEmpty("explanation_parse_mode", config.ExplanationParseMode)
-	params.AddNonZero("open_period", config.OpenPeriod)
-	params.AddNonZero64("close_date", config.CloseDate)
-	err = params.AddInterface("explanation_entities", config.ExplanationEntities)
+	if err = params.AddInterface("explanation_entities", config.ExplanationEntities); err != nil {
+		return
+	}
+	params.AddNonZeroInteger("open_period", config.OpenPeriod)
+	params.AddNonZeroInteger("close_date", config.CloseDate)
+	params.AddBool("is_closed", config.IsClosed)
+	params.AddNonEmpty("description", config.Description)
+	params.AddNonEmpty("description_parse_mode", config.DescriptionParseMode)
+	if err = params.AddInterface("description_entities", config.DescriptionEntities); err != nil {
+		return
+	}
 
-	return params, err
+	return
 }
 
 func (SendPollConfig) method() string {
@@ -1136,7 +1040,7 @@ type SetGameScoreConfig struct {
 	BaseChatMessage
 
 	UserID             int64
-	Score              int
+	Score              int64
 	Force              bool
 	DisableEditMessage bool
 	InlineMessageID    string
@@ -1145,8 +1049,8 @@ type SetGameScoreConfig struct {
 func (config SetGameScoreConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
-	params.AddNonZero("score", config.Score)
+	params.AddNonZeroInteger("user_id", config.UserID)
+	params.AddNonZeroInteger("score", config.Score)
 	params.AddBool("force", config.Force)
 	params.AddBool("disable_edit_message", config.DisableEditMessage)
 
@@ -1178,7 +1082,7 @@ type GetGameHighScoresConfig struct {
 func (config GetGameHighScoresConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 
 	if config.InlineMessageID != "" {
 		params["inline_message_id"] = config.InlineMessageID
@@ -1200,7 +1104,7 @@ func (config GetGameHighScoresConfig) method() string {
 // ChatActionConfig contains information about a SendChatAction request.
 type ChatActionConfig struct {
 	BaseChat
-	MessageThreadID int
+	MessageThreadID int64
 	Action          string // required
 }
 
@@ -1208,7 +1112,7 @@ func (config ChatActionConfig) params() (Params, error) {
 	params, err := config.BaseChat.params()
 
 	params["action"] = config.Action
-	params.AddNonZero("message_thread_id", config.MessageThreadID)
+	params.AddNonZeroInteger("message_thread_id", config.MessageThreadID)
 
 	return params, err
 }
@@ -1371,7 +1275,7 @@ func (config ApproveSuggestedPostConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero64("send_date", config.SendDate)
+	params.AddNonZeroInteger("send_date", config.SendDate)
 
 	return params, nil
 }
@@ -1423,8 +1327,8 @@ func (SetMessageReactionConfig) method() string {
 // GetUserProfilePhotos request.
 type UserProfilePhotosConfig struct {
 	UserID int64
-	Offset int
-	Limit  int
+	Offset int64
+	Limit  int64
 }
 
 func (UserProfilePhotosConfig) method() string {
@@ -1434,9 +1338,9 @@ func (UserProfilePhotosConfig) method() string {
 func (config UserProfilePhotosConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
-	params.AddNonZero("offset", config.Offset)
-	params.AddNonZero("limit", config.Limit)
+	params.AddNonZeroInteger("user_id", config.UserID)
+	params.AddNonZeroInteger("offset", config.Offset)
+	params.AddNonZeroInteger("limit", config.Limit)
 
 	return params, nil
 }
@@ -1444,8 +1348,8 @@ func (config UserProfilePhotosConfig) params() (Params, error) {
 // UserProfileAudiosConfig contains information about a GetUserProfileAudios request.
 type UserProfileAudiosConfig struct {
 	UserID int64
-	Offset int
-	Limit  int
+	Offset int64
+	Limit  int64
 }
 
 func (UserProfileAudiosConfig) method() string {
@@ -1455,9 +1359,9 @@ func (UserProfileAudiosConfig) method() string {
 func (config UserProfileAudiosConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
-	params.AddNonZero("offset", config.Offset)
-	params.AddNonZero("limit", config.Limit)
+	params.AddNonZeroInteger("user_id", config.UserID)
+	params.AddNonZeroInteger("offset", config.Offset)
+	params.AddNonZeroInteger("limit", config.Limit)
 
 	return params, nil
 }
@@ -1479,9 +1383,9 @@ func (SetUserEmojiStatusConfig) method() string {
 func (config SetUserEmojiStatusConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 	params.AddNonEmpty("emoji_status_custom_emoji_id", config.EmojiStatusCustomEmojiID)
-	params.AddNonZero64("emoji_status_expiration_date", config.EmojiStatusExpirationDate)
+	params.AddNonZeroInteger("emoji_status_expiration_date", config.EmojiStatusExpirationDate)
 
 	return params, nil
 }
@@ -1505,9 +1409,9 @@ func (config FileConfig) params() (Params, error) {
 
 // UpdateConfig contains information about a GetUpdates request.
 type UpdateConfig struct {
-	Offset         int
-	Limit          int
-	Timeout        int
+	Offset         int64
+	Limit          int64
+	Timeout        int64
 	AllowedUpdates []string
 }
 
@@ -1515,15 +1419,15 @@ func (UpdateConfig) method() string {
 	return "getUpdates"
 }
 
-func (config UpdateConfig) params() (Params, error) {
-	params := make(Params)
+func (config UpdateConfig) params() (params Params, err error) {
+	params = make(Params)
 
-	params.AddNonZero("offset", config.Offset)
-	params.AddNonZero("limit", config.Limit)
-	params.AddNonZero("timeout", config.Timeout)
-	params.AddInterface("allowed_updates", config.AllowedUpdates)
+	params.AddNonZeroInteger("offset", config.Offset)
+	params.AddNonZeroInteger("limit", config.Limit)
+	params.AddNonZeroInteger("timeout", config.Timeout)
+	err = params.AddInterface("allowed_updates", config.AllowedUpdates)
 
-	return params, nil
+	return
 }
 
 // WebhookConfig contains information about a SetWebhook request.
@@ -1531,7 +1435,7 @@ type WebhookConfig struct {
 	URL                *url.URL
 	Certificate        RequestFileData
 	IPAddress          string
-	MaxConnections     int
+	MaxConnections     int64
 	AllowedUpdates     []string
 	DropPendingUpdates bool
 	SecretToken        string
@@ -1549,7 +1453,7 @@ func (config WebhookConfig) params() (Params, error) {
 	}
 
 	params.AddNonEmpty("ip_address", config.IPAddress)
-	params.AddNonZero("max_connections", config.MaxConnections)
+	params.AddNonZeroInteger("max_connections", config.MaxConnections)
 	err := params.AddInterface("allowed_updates", config.AllowedUpdates)
 	params.AddBool("drop_pending_updates", config.DropPendingUpdates)
 	params.AddNonEmpty("secret_token", config.SecretToken)
@@ -1603,7 +1507,7 @@ type InlineQueryResultsButton struct {
 type InlineConfig struct {
 	InlineQueryID string                    `json:"inline_query_id"`
 	Results       []interface{}             `json:"results"`
-	CacheTime     int                       `json:"cache_time"`
+	CacheTime     int64                     `json:"cache_time"`
 	IsPersonal    bool                      `json:"is_personal"`
 	NextOffset    string                    `json:"next_offset"`
 	Button        *InlineQueryResultsButton `json:"button,omitempty"`
@@ -1617,7 +1521,7 @@ func (config InlineConfig) params() (Params, error) {
 	params := make(Params)
 
 	params["inline_query_id"] = config.InlineQueryID
-	params.AddNonZero("cache_time", config.CacheTime)
+	params.AddNonZeroInteger("cache_time", config.CacheTime)
 	params.AddBool("is_personal", config.IsPersonal)
 	params.AddNonEmpty("next_offset", config.NextOffset)
 	err := params.AddInterface("button", config.Button)
@@ -1670,7 +1574,7 @@ func (config SavePreparedInlineMessageConfig[T]) method() string {
 func (config SavePreparedInlineMessageConfig[T]) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 	err := params.AddInterface("result", config.Result)
 	if err != nil {
 		return params, err
@@ -1684,13 +1588,34 @@ func (config SavePreparedInlineMessageConfig[T]) params() (Params, error) {
 	return params, err
 }
 
+type SavePreparedKeyboardButtonConfig struct {
+	// UserID Unique identifier of the target user that can use the button.
+	UserID int64 `json:"user_id"`
+
+	// Button A JSON-serialized object describing the button to be saved.
+	// The button must be of the type request_users, request_chat, or request_managed_bot.
+	Button *KeyboardButton `json:"button"`
+}
+
+func (config SavePreparedKeyboardButtonConfig) method() string { return "savePreparedKeyboardButton" }
+
+func (config SavePreparedKeyboardButtonConfig) params() (ret Params, err error) {
+	ret = make(Params)
+	ret.AddNonZeroInteger("user_id", config.UserID)
+	if err = ret.AddInterface("button", config.Button); err != nil {
+		return
+	}
+
+	return
+}
+
 // CallbackConfig contains information on making a CallbackQuery response.
 type CallbackConfig struct {
 	CallbackQueryID string `json:"callback_query_id"`
 	Text            string `json:"text"`
 	ShowAlert       bool   `json:"show_alert"`
 	URL             string `json:"url"`
-	CacheTime       int    `json:"cache_time"`
+	CacheTime       int64  `json:"cache_time"`
 }
 
 func (config CallbackConfig) method() string {
@@ -1704,7 +1629,7 @@ func (config CallbackConfig) params() (Params, error) {
 	params.AddNonEmpty("text", config.Text)
 	params.AddBool("show_alert", config.ShowAlert)
 	params.AddNonEmpty("url", config.URL)
-	params.AddNonZero("cache_time", config.CacheTime)
+	params.AddNonZeroInteger("cache_time", config.CacheTime)
 
 	return params, nil
 }
@@ -1721,7 +1646,7 @@ func (config ChatMemberConfig) params() (Params, error) {
 	if err != nil {
 		return params, err
 	}
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 	return params, nil
 }
 
@@ -1763,7 +1688,7 @@ func (config BanChatMemberConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero64("until_date", config.UntilDate)
+	params.AddNonZeroInteger("until_date", config.UntilDate)
 	params.AddBool("revoke_messages", config.RevokeMessages)
 
 	return params, nil
@@ -1793,7 +1718,7 @@ func (config RestrictChatMemberConfig) params() (Params, error) {
 	}
 
 	params.AddBool("use_independent_chat_permissions", config.UseIndependentChatPermissions)
-	params.AddNonZero64("until_date", config.UntilDate)
+	params.AddNonZeroInteger("until_date", config.UntilDate)
 	err = params.AddInterface("permissions", config.Permissions)
 
 	return params, err
@@ -1915,8 +1840,8 @@ func (config BanChatSenderChatConfig) params() (Params, error) {
 	if err != nil {
 		return params, err
 	}
-	params.AddNonZero64("sender_chat_id", config.SenderChatID)
-	params.AddNonZero64("until_date", config.UntilDate)
+	params.AddNonZeroInteger("sender_chat_id", config.SenderChatID)
+	params.AddNonZeroInteger("until_date", config.UntilDate)
 
 	return params, nil
 }
@@ -1938,7 +1863,7 @@ func (config UnbanChatSenderChatConfig) params() (Params, error) {
 	if err != nil {
 		return params, err
 	}
-	params.AddNonZero64("sender_chat_id", config.SenderChatID)
+	params.AddNonZeroInteger("sender_chat_id", config.SenderChatID)
 
 	return params, nil
 }
@@ -2018,7 +1943,7 @@ type CreateChatInviteLinkConfig struct {
 	ChatConfig
 	Name               string
 	ExpireDate         int64
-	MemberLimit        int
+	MemberLimit        int64
 	CreatesJoinRequest bool
 }
 
@@ -2033,8 +1958,8 @@ func (config CreateChatInviteLinkConfig) params() (Params, error) {
 	}
 
 	params.AddNonEmpty("name", config.Name)
-	params.AddNonZero64("expire_date", config.ExpireDate)
-	params.AddNonZero("member_limit", config.MemberLimit)
+	params.AddNonZeroInteger("expire_date", config.ExpireDate)
+	params.AddNonZeroInteger("member_limit", config.MemberLimit)
 	params.AddBool("creates_join_request", config.CreatesJoinRequest)
 
 	return params, nil
@@ -2048,7 +1973,7 @@ type EditChatInviteLinkConfig struct {
 	InviteLink         string
 	Name               string
 	ExpireDate         int64
-	MemberLimit        int
+	MemberLimit        int64
 	CreatesJoinRequest bool
 }
 
@@ -2064,8 +1989,8 @@ func (config EditChatInviteLinkConfig) params() (Params, error) {
 
 	params.AddNonEmpty("name", config.Name)
 	params["invite_link"] = config.InviteLink
-	params.AddNonZero64("expire_date", config.ExpireDate)
-	params.AddNonZero("member_limit", config.MemberLimit)
+	params.AddNonZeroInteger("expire_date", config.ExpireDate)
+	params.AddNonZeroInteger("member_limit", config.MemberLimit)
 	params.AddBool("creates_join_request", config.CreatesJoinRequest)
 
 	return params, nil
@@ -2079,8 +2004,8 @@ func (config EditChatInviteLinkConfig) params() (Params, error) {
 type CreateChatSubscriptionLinkConfig struct {
 	ChatConfig
 	Name               string
-	SubscriptionPeriod int
-	SubscriptionPrice  int
+	SubscriptionPeriod int64
+	SubscriptionPrice  int64
 }
 
 func (CreateChatSubscriptionLinkConfig) method() string {
@@ -2094,8 +2019,8 @@ func (config CreateChatSubscriptionLinkConfig) params() (Params, error) {
 	}
 
 	params.AddNonEmpty("name", config.Name)
-	params.AddNonZero("subscription_period", config.SubscriptionPeriod)
-	params.AddNonZero("subscription_price", config.SubscriptionPrice)
+	params.AddNonZeroInteger("subscription_period", config.SubscriptionPeriod)
+	params.AddNonZeroInteger("subscription_price", config.SubscriptionPrice)
 
 	return params, nil
 }
@@ -2165,7 +2090,7 @@ func (config ApproveChatJoinRequestConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 
 	return params, nil
 }
@@ -2185,7 +2110,7 @@ func (config DeclineChatJoinRequest) params() (Params, error) {
 	if err != nil {
 		return params, err
 	}
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 
 	return params, nil
 }
@@ -2215,7 +2140,7 @@ func (config ChatConfigWithUser) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 
 	return params, nil
 }
@@ -2238,14 +2163,14 @@ type InvoiceConfig struct {
 	ProviderToken             string         // required
 	Currency                  string         // required
 	Prices                    []LabeledPrice // required
-	MaxTipAmount              int
-	SuggestedTipAmounts       []int
+	MaxTipAmount              int64
+	SuggestedTipAmounts       []int64
 	StartParameter            string
 	ProviderData              string
 	PhotoURL                  string
-	PhotoSize                 int
-	PhotoWidth                int
-	PhotoHeight               int
+	PhotoSize                 int64
+	PhotoWidth                int64
+	PhotoHeight               int64
 	NeedName                  bool
 	NeedPhoneNumber           bool
 	NeedEmail                 bool
@@ -2270,7 +2195,7 @@ func (config InvoiceConfig) params() (Params, error) {
 	}
 
 	params.AddNonEmpty("provider_token", config.ProviderToken)
-	params.AddNonZero("max_tip_amount", config.MaxTipAmount)
+	params.AddNonZeroInteger("max_tip_amount", config.MaxTipAmount)
 	if len(config.SuggestedTipAmounts) > 0 {
 		err = params.AddInterface("suggested_tip_amounts", config.SuggestedTipAmounts)
 		if err != nil {
@@ -2280,9 +2205,9 @@ func (config InvoiceConfig) params() (Params, error) {
 	params.AddNonEmpty("start_parameter", config.StartParameter)
 	params.AddNonEmpty("provider_data", config.ProviderData)
 	params.AddNonEmpty("photo_url", config.PhotoURL)
-	params.AddNonZero("photo_size", config.PhotoSize)
-	params.AddNonZero("photo_width", config.PhotoWidth)
-	params.AddNonZero("photo_height", config.PhotoHeight)
+	params.AddNonZeroInteger("photo_size", config.PhotoSize)
+	params.AddNonZeroInteger("photo_width", config.PhotoWidth)
+	params.AddNonZeroInteger("photo_height", config.PhotoHeight)
 	params.AddBool("need_name", config.NeedName)
 	params.AddBool("need_phone_number", config.NeedPhoneNumber)
 	params.AddBool("need_email", config.NeedEmail)
@@ -2307,14 +2232,14 @@ type InvoiceLinkConfig struct {
 	ProviderToken             string         // Required
 	Currency                  string         // Required
 	Prices                    []LabeledPrice // Required
-	SubscriptionPeriod        int
-	MaxTipAmount              int
-	SuggestedTipAmounts       []int
+	SubscriptionPeriod        int64
+	MaxTipAmount              int64
+	SuggestedTipAmounts       []int64
 	ProviderData              string
 	PhotoURL                  string
-	PhotoSize                 int
-	PhotoWidth                int
-	PhotoHeight               int
+	PhotoSize                 int64
+	PhotoWidth                int64
+	PhotoHeight               int64
 	NeedName                  bool
 	NeedPhoneNumber           bool
 	NeedEmail                 bool
@@ -2338,9 +2263,9 @@ func (config InvoiceLinkConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero("subscription_period", config.SubscriptionPeriod)
+	params.AddNonZeroInteger("subscription_period", config.SubscriptionPeriod)
 	params.AddNonEmpty("provider_token", config.ProviderToken)
-	params.AddNonZero("max_tip_amount", config.MaxTipAmount)
+	params.AddNonZeroInteger("max_tip_amount", config.MaxTipAmount)
 	if len(config.SuggestedTipAmounts) > 0 {
 		err := params.AddInterface("suggested_tip_amounts", config.SuggestedTipAmounts)
 		if err != nil {
@@ -2349,9 +2274,9 @@ func (config InvoiceLinkConfig) params() (Params, error) {
 	}
 	params.AddNonEmpty("provider_data", config.ProviderData)
 	params.AddNonEmpty("photo_url", config.PhotoURL)
-	params.AddNonZero("photo_size", config.PhotoSize)
-	params.AddNonZero("photo_width", config.PhotoWidth)
-	params.AddNonZero("photo_height", config.PhotoHeight)
+	params.AddNonZeroInteger("photo_size", config.PhotoSize)
+	params.AddNonZeroInteger("photo_width", config.PhotoWidth)
+	params.AddNonZeroInteger("photo_height", config.PhotoHeight)
 	params.AddBool("need_name", config.NeedName)
 	params.AddBool("need_phone_number", config.NeedPhoneNumber)
 	params.AddBool("need_email", config.NeedEmail)
@@ -2424,7 +2349,7 @@ func (config SetPassportDataErrorsConfig) method() string {
 func (config SetPassportDataErrorsConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 	err := params.AddInterface("errors", config.Errors)
 
 	return params, err
@@ -2445,8 +2370,8 @@ func (config GetStarTransactionsConfig) method() string {
 func (config GetStarTransactionsConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("offset", config.Offset)
-	params.AddNonZero64("limit", config.Limit)
+	params.AddNonZeroInteger("offset", config.Offset)
+	params.AddNonZeroInteger("limit", config.Limit)
 
 	return params, nil
 }
@@ -2478,7 +2403,7 @@ func (config GetBusinessAccountStarBalanceConfig) params() (Params, error) {
 // TransferBusinessAccountStarsConfig transfers Telegram Stars from the business account.
 type TransferBusinessAccountStarsConfig struct {
 	BusinessConnectionID BusinessConnectionID
-	StarCount            int
+	StarCount            int64
 }
 
 func (config TransferBusinessAccountStarsConfig) method() string {
@@ -2491,7 +2416,7 @@ func (config TransferBusinessAccountStarsConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero("star_count", config.StarCount)
+	params.AddNonZeroInteger("star_count", config.StarCount)
 
 	return params, nil
 }
@@ -2511,7 +2436,7 @@ func (config RefundStarPaymentConfig) params() (Params, error) {
 	params := make(Params)
 
 	params["telegram_payment_charge_id"] = config.TelegramPaymentChargeID
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 
 	return params, nil
 }
@@ -2532,7 +2457,7 @@ func (config EditUserStarSubscriptionConfig) params() (Params, error) {
 	params := make(Params)
 
 	params["telegram_payment_charge_id"] = config.TelegramPaymentChargeID
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 	params.AddBool("is_canceled", config.IsCanceled)
 
 	return params, nil
@@ -2595,7 +2520,7 @@ func (config SendGiftConfig) method() string {
 
 func (config SendGiftConfig) params() (Params, error) {
 	params := make(Params)
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 
 	p1, err := config.Chat.params()
 	if err != nil {
@@ -2618,8 +2543,8 @@ func (config SendGiftConfig) params() (Params, error) {
 // GiftPremiumSubscriptionConfig gifts a Telegram Premium subscription.
 type GiftPremiumSubscriptionConfig struct {
 	UserID        int64
-	MonthCount    int
-	StarCount     int
+	MonthCount    int64
+	StarCount     int64
 	Text          string
 	TextParseMode string
 	TextEntities  []MessageEntity
@@ -2629,17 +2554,16 @@ func (config GiftPremiumSubscriptionConfig) method() string {
 	return "giftPremiumSubscription"
 }
 
-func (config GiftPremiumSubscriptionConfig) params() (Params, error) {
-	params := make(Params)
-
-	params.AddNonZero64("user_id", config.UserID)
-	params.AddNonZero("month_count", config.MonthCount)
-	params.AddNonZero("star_count", config.StarCount)
+func (config GiftPremiumSubscriptionConfig) params() (params Params, err error) {
+	params = make(Params)
+	params.AddNonZeroInteger("user_id", config.UserID)
+	params.AddNonZeroInteger("month_count", config.MonthCount)
+	params.AddNonZeroInteger("star_count", config.StarCount)
 	params.AddNonEmpty("text", config.Text)
 	params.AddNonEmpty("text_parse_mode", config.TextParseMode)
-	err := params.AddInterface("text_entities", config.TextEntities)
+	err = params.AddInterface("text_entities", config.TextEntities)
 
-	return params, err
+	return
 }
 
 // GetUserGiftsConfig gets the gifts received by a user.
@@ -2652,7 +2576,7 @@ type GetUserGiftsConfig struct {
 	ExcludeUnique               bool
 	SortByPrice                 bool
 	Offset                      string
-	Limit                       int
+	Limit                       int64
 }
 
 func (config GetUserGiftsConfig) method() string {
@@ -2662,7 +2586,7 @@ func (config GetUserGiftsConfig) method() string {
 func (config GetUserGiftsConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 	params.AddBool("exclude_unlimited", config.ExcludeUnlimited)
 	params.AddBool("exclude_limited_upgradable", config.ExcludeLimitedUpgradable)
 	params.AddBool("exclude_limited_non_upgradable", config.ExcludeLimitedNonUpgradable)
@@ -2670,7 +2594,7 @@ func (config GetUserGiftsConfig) params() (Params, error) {
 	params.AddBool("exclude_unique", config.ExcludeUnique)
 	params.AddBool("sort_by_price", config.SortByPrice)
 	params.AddNonEmpty("offset", config.Offset)
-	params.AddNonZero("limit", config.Limit)
+	params.AddNonZeroInteger("limit", config.Limit)
 
 	return params, nil
 }
@@ -2687,7 +2611,7 @@ type GetChatGiftsConfig struct {
 	ExcludeUnique               bool
 	SortByPrice                 bool
 	Offset                      string
-	Limit                       int
+	Limit                       int64
 }
 
 func (config GetChatGiftsConfig) method() string {
@@ -2709,7 +2633,7 @@ func (config GetChatGiftsConfig) params() (Params, error) {
 	params.AddBool("exclude_unique", config.ExcludeUnique)
 	params.AddBool("sort_by_price", config.SortByPrice)
 	params.AddNonEmpty("offset", config.Offset)
-	params.AddNonZero("limit", config.Limit)
+	params.AddNonZeroInteger("limit", config.Limit)
 
 	return params, nil
 }
@@ -2726,7 +2650,7 @@ type GetBusinessAccountGiftsConfig struct {
 	ExcludeFromBlockchain       bool
 	SortByPrice                 bool
 	Offset                      string
-	Limit                       int
+	Limit                       int64
 }
 
 func (config GetBusinessAccountGiftsConfig) method() string {
@@ -2748,7 +2672,7 @@ func (config GetBusinessAccountGiftsConfig) params() (Params, error) {
 	params.AddBool("exclude_from_blockchain", config.ExcludeFromBlockchain)
 	params.AddBool("sort_by_price", config.SortByPrice)
 	params.AddNonEmpty("offset", config.Offset)
-	params.AddNonZero("limit", config.Limit)
+	params.AddNonZeroInteger("limit", config.Limit)
 
 	return params, nil
 }
@@ -2779,7 +2703,7 @@ type UpgradeGiftConfig struct {
 	BusinessConnectionID BusinessConnectionID
 	OwnedGiftID          string
 	KeepOriginalDetails  bool
-	StarCount            int
+	StarCount            int64
 }
 
 func (config UpgradeGiftConfig) method() string {
@@ -2794,7 +2718,7 @@ func (config UpgradeGiftConfig) params() (Params, error) {
 
 	params.AddNonEmpty("owned_gift_id", config.OwnedGiftID)
 	params.AddBool("keep_original_details", config.KeepOriginalDetails)
-	params.AddNonZero("star_count", config.StarCount)
+	params.AddNonZeroInteger("star_count", config.StarCount)
 
 	return params, nil
 }
@@ -2804,7 +2728,7 @@ type TransferGiftConfig struct {
 	BusinessConnectionID BusinessConnectionID
 	OwnedGiftID          string
 	NewOwnerChatID       int64
-	StarCount            int
+	StarCount            int64
 }
 
 func (config TransferGiftConfig) method() string {
@@ -2818,8 +2742,8 @@ func (config TransferGiftConfig) params() (Params, error) {
 	}
 
 	params.AddNonEmpty("owned_gift_id", config.OwnedGiftID)
-	params.AddNonZero64("new_owner_chat_id", config.NewOwnerChatID)
-	params.AddNonZero("star_count", config.StarCount)
+	params.AddNonZeroInteger("new_owner_chat_id", config.NewOwnerChatID)
+	params.AddNonZeroInteger("star_count", config.StarCount)
 
 	return params, nil
 }
@@ -2838,7 +2762,7 @@ func (config VerifyUserConfig) method() string {
 
 func (config VerifyUserConfig) params() (Params, error) {
 	params := make(Params)
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 	params.AddNonEmpty("custom_description", config.CustomDescription)
 
 	return params, nil
@@ -2879,7 +2803,7 @@ func (config RemoveUserVerificationConfig) method() string {
 
 func (config RemoveUserVerificationConfig) params() (Params, error) {
 	params := make(Params)
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 
 	return params, nil
 }
@@ -3069,7 +2993,7 @@ func (config UploadStickerConfig) method() string {
 func (config UploadStickerConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 	params["sticker_format"] = config.StickerFormat
 
 	return params, nil
@@ -3096,7 +3020,7 @@ func (config NewStickerSetConfig) method() string {
 func (config NewStickerSetConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 	params["name"] = config.Name
 	params["title"] = config.Title
 
@@ -3129,7 +3053,7 @@ func (config AddStickerConfig) method() string {
 func (config AddStickerConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 	params["name"] = config.Name
 	err := params.AddInterface("sticker", config.Sticker)
 	return params, err
@@ -3142,7 +3066,7 @@ func (config AddStickerConfig) files() []RequestFile {
 // SetStickerPositionConfig allows you to change the position of a sticker in a set.
 type SetStickerPositionConfig struct {
 	Sticker  string
-	Position int
+	Position int64
 }
 
 func (config SetStickerPositionConfig) method() string {
@@ -3153,7 +3077,7 @@ func (config SetStickerPositionConfig) params() (Params, error) {
 	params := make(Params)
 
 	params["sticker"] = config.Sticker
-	params.AddNonZero("position", config.Position)
+	params.AddNonZeroInteger("position", config.Position)
 
 	return params, nil
 }
@@ -3248,7 +3172,7 @@ func (config ReplaceStickerInSetConfig) method() string {
 func (config ReplaceStickerInSetConfig) params() (Params, error) {
 	params := make(Params)
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 	params["name"] = config.Name
 	params["old_sticker"] = config.OldSticker
 
@@ -3332,7 +3256,7 @@ func (config SetStickerSetThumbConfig) params() (Params, error) {
 	params["name"] = config.Name
 	params["format"] = config.Format
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 
 	return params, nil
 }
@@ -3396,7 +3320,7 @@ func (config GetForumTopicIconStickersConfig) params() (Params, error) {
 type CreateForumTopicConfig struct {
 	ChatConfig
 	Name              string
-	IconColor         int
+	IconColor         int64
 	IconCustomEmojiID string
 }
 
@@ -3411,7 +3335,7 @@ func (config CreateForumTopicConfig) params() (Params, error) {
 	}
 
 	params.AddNonEmpty("name", config.Name)
-	params.AddNonZero("icon_color", config.IconColor)
+	params.AddNonZeroInteger("icon_color", config.IconColor)
 	params.AddNonEmpty("icon_custom_emoji_id", config.IconCustomEmojiID)
 
 	return params, nil
@@ -3419,7 +3343,7 @@ func (config CreateForumTopicConfig) params() (Params, error) {
 
 type BaseForum struct {
 	ChatConfig
-	MessageThreadID int
+	MessageThreadID int64
 }
 
 func (base BaseForum) params() (Params, error) {
@@ -3427,7 +3351,7 @@ func (base BaseForum) params() (Params, error) {
 	if err != nil {
 		return params, err
 	}
-	params.AddNonZero("message_thread_id", base.MessageThreadID)
+	params.AddNonZeroInteger("message_thread_id", base.MessageThreadID)
 
 	return params, nil
 }
@@ -3631,7 +3555,7 @@ func (config GetUserChatBoostsConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero64("user_id", config.UserID)
+	params.AddNonZeroInteger("user_id", config.UserID)
 
 	return params, err
 }
@@ -3657,6 +3581,36 @@ func (config BusinessConnectionID) params() (Params, error) {
 	params["business_connection_id"] = string(config)
 
 	return params, nil
+}
+
+// GetManagedBotTokenConfig Get the token of a managed bot.
+// Returns the token as String on success.
+type GetManagedBotTokenConfig struct {
+	UserID int64
+}
+
+func (config GetManagedBotTokenConfig) method() string { return "getManagedBotToken" }
+
+func (config GetManagedBotTokenConfig) params() (ret Params, err error) {
+	ret = make(Params)
+	ret.AddNonZeroInteger("user_id", config.UserID)
+
+	return
+}
+
+// ReplaceManagedBotTokenConfig Revoke the current token of a managed bot and generate a new one.
+// Returns the new token as String on success.
+type ReplaceManagedBotTokenConfig struct {
+	UserID int64
+}
+
+func (config ReplaceManagedBotTokenConfig) method() string { return "replaceManagedBotToken" }
+
+func (config ReplaceManagedBotTokenConfig) params() (ret Params, err error) {
+	ret = make(Params)
+	ret.AddNonZeroInteger("user_id", config.UserID)
+
+	return
 }
 
 // ReadBusinessMessageConfig contains information of a message in a chat to make as read.
@@ -3829,7 +3783,7 @@ func (config RemoveBusinessAccountProfilePhotoConfig) params() (Params, error) {
 type PostStoryConfig struct {
 	BusinessConnectionID BusinessConnectionID
 	Content              InputStoryContent
-	ActivePeriod         int
+	ActivePeriod         int64
 	Caption              string
 	ParseMode            string
 	CaptionEntities      []MessageEntity
@@ -3854,7 +3808,7 @@ func (config PostStoryConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero("active_period", config.ActivePeriod)
+	params.AddNonZeroInteger("active_period", config.ActivePeriod)
 	params.AddNonEmpty("caption", config.Caption)
 	params.AddNonEmpty("parse_mode", config.ParseMode)
 	err = params.AddInterface("caption_entities", config.CaptionEntities)
@@ -3878,7 +3832,7 @@ func (config PostStoryConfig) files() []RequestFile {
 // EditStoryConfig edits a story posted by a managed business account.
 type EditStoryConfig struct {
 	BusinessConnectionID BusinessConnectionID
-	StoryID              int
+	StoryID              int64
 	Content              InputStoryContent
 	Caption              string
 	ParseMode            string
@@ -3896,7 +3850,7 @@ func (config EditStoryConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero("story_id", config.StoryID)
+	params.AddNonZeroInteger("story_id", config.StoryID)
 	prepared := prepareInputStoryContentForParams(config.Content)
 	err = params.AddInterface("content", prepared)
 	if err != nil {
@@ -3920,7 +3874,7 @@ func (config EditStoryConfig) files() []RequestFile {
 // DeleteStoryConfig deletes a story posted by a managed business account.
 type DeleteStoryConfig struct {
 	BusinessConnectionID BusinessConnectionID
-	StoryID              int
+	StoryID              int64
 }
 
 func (config DeleteStoryConfig) method() string {
@@ -3933,7 +3887,7 @@ func (config DeleteStoryConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero("story_id", config.StoryID)
+	params.AddNonZeroInteger("story_id", config.StoryID)
 
 	return params, nil
 }
@@ -3942,8 +3896,8 @@ func (config DeleteStoryConfig) params() (Params, error) {
 type RepostStoryConfig struct {
 	BusinessConnectionID BusinessConnectionID
 	FromChatID           int64
-	FromStoryID          int
-	ActivePeriod         int
+	FromStoryID          int64
+	ActivePeriod         int64
 	PostToChatPage       bool
 	ProtectContent       bool
 }
@@ -3958,9 +3912,9 @@ func (config RepostStoryConfig) params() (Params, error) {
 		return params, err
 	}
 
-	params.AddNonZero64("from_chat_id", config.FromChatID)
-	params.AddNonZero("from_story_id", config.FromStoryID)
-	params.AddNonZero("active_period", config.ActivePeriod)
+	params.AddNonZeroInteger("from_chat_id", config.FromChatID)
+	params.AddNonZeroInteger("from_story_id", config.FromStoryID)
+	params.AddNonZeroInteger("active_period", config.ActivePeriod)
 	params.AddBool("post_to_chat_page", config.PostToChatPage)
 	params.AddBool("protect_content", config.ProtectContent)
 
