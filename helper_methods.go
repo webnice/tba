@@ -391,10 +391,10 @@ func NewSetUserEmojiStatus(userID int64, emojiID string, statusExpDate int64) Se
 	}
 }
 
-// NewUpdate gets updates since the last Offset.
+// NewUpdate получает обновления с момента последнего запроса.
 //
-// offset is the last Update ID to include.
-// You likely want to set this to the last Update ID plus 1.
+// offset - это последний включаемый идентификатор обновления.
+// Вероятно, вы захотите установить его равным идентификатору последнего обновления плюс 1.
 func NewUpdate(offset int64) UpdateConfig {
 	return UpdateConfig{
 		Offset:  offset,

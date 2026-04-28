@@ -448,16 +448,16 @@ func (bot *BotAPI) GetUpdates(config UpdateConfig) ([]Update, error) {
 	return bot.GetUpdatesWithContext(context.Background(), config)
 }
 
-func (bot *BotAPI) GetUpdatesWithContext(ctx context.Context, config UpdateConfig) ([]Update, error) {
-	resp, err := bot.RequestWithContext(ctx, config)
-	if err != nil {
-		return []Update{}, err
-	}
+func (bot *BotAPI) GetUpdatesWithContext(ctx context.Context, config UpdateConfig) (updates []Update, err error) {
+	var resp *APIResponse
 
-	var updates []Update
+	updates = make([]Update, 0)
+	if resp, err = bot.RequestWithContext(ctx, config); err != nil {
+		return
+	}
 	err = json.Unmarshal(resp.Result, &updates)
 
-	return updates, err
+	return
 }
 
 // GetWebhookInfo Запрос информации о вебхуке с сервера телеграм.
