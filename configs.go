@@ -243,23 +243,19 @@ type SendMessageDraftConfig struct {
 	Entities        []MessageEntity
 }
 
-func (config SendMessageDraftConfig) method() string {
-	return "sendMessageDraft"
-}
+func (config SendMessageDraftConfig) method() string { return "sendMessageDraft" }
 
-func (config SendMessageDraftConfig) params() (Params, error) {
-	params, err := config.ChatConfig.params()
-	if err != nil {
-		return params, err
+func (config SendMessageDraftConfig) params() (ret Params, err error) {
+	if ret, err = config.ChatConfig.params(); err != nil {
+		return
 	}
+	ret.AddNonZeroInteger("message_thread_id", config.MessageThreadID)
+	ret.AddNonZeroInteger("draft_id", config.DraftID)
+	ret["text"] = config.Text
+	ret.AddNonEmpty("parse_mode", config.ParseMode)
+	err = ret.AddInterface("entities", config.Entities)
 
-	params.AddNonZeroInteger("message_thread_id", config.MessageThreadID)
-	params.AddNonZeroInteger("draft_id", config.DraftID)
-	params["text"] = config.Text
-	params.AddNonEmpty("parse_mode", config.ParseMode)
-	err = params.AddInterface("entities", config.Entities)
-
-	return params, err
+	return
 }
 
 // ForwardConfig contains information about a ForwardMessage request.
@@ -419,9 +415,7 @@ func (config PhotoConfig) params() (Params, error) {
 	return params, err
 }
 
-func (config PhotoConfig) method() string {
-	return "sendPhoto"
-}
+func (config PhotoConfig) method() string { return "sendPhoto" }
 
 func (config PhotoConfig) files() []RequestFile {
 	files := []RequestFile{{
@@ -433,6 +427,53 @@ func (config PhotoConfig) files() []RequestFile {
 		files = append(files, RequestFile{
 			Name: "thumbnail",
 			Data: config.Thumb,
+		})
+	}
+
+	return files
+}
+
+// LivePhotoConfig contains information about a sendLivePhoto request.
+// Use this method to send live photos. On success, the sent Message is returned.
+type LivePhotoConfig struct {
+	BaseChat
+	BaseSpoiler
+	LivePhoto             RequestFileData
+	Photo                 RequestFileData
+	Caption               string
+	ParseMode             string
+	CaptionEntities       []MessageEntity
+	ShowCaptionAboveMedia bool
+}
+
+func (config LivePhotoConfig) params() (ret Params, err error) {
+	var params Params
+
+	ret.AddNonEmpty("caption", config.Caption)
+	ret.AddNonEmpty("parse_mode", config.ParseMode)
+	if err = ret.AddInterface("caption_entities", config.CaptionEntities); err != nil {
+		return ret, err
+	}
+	ret.AddBool("show_caption_above_media", config.ShowCaptionAboveMedia)
+	if params, err = config.BaseSpoiler.params(); err != nil {
+		return ret, err
+	}
+	ret.Merge(params)
+
+	return
+}
+
+func (config LivePhotoConfig) method() string { return "sendLivePhoto" }
+
+func (config LivePhotoConfig) files() []RequestFile {
+	files := []RequestFile{{
+		Name: "live_photo",
+		Data: config.LivePhoto,
+	}}
+	if config.Photo != nil {
+		files = append(files, RequestFile{
+			Name: "photo",
+			Data: config.Photo,
 		})
 	}
 
@@ -962,16 +1003,20 @@ type SendPollConfig struct {
 	ShuffleOptions         bool
 	AllowAddingOptions     bool
 	HideResultsUntilCloses bool
+	MembersOnly            bool
+	CountryCodes           []string
 	CorrectOptionIDs       []int64
 	Explanation            string
 	ExplanationParseMode   string
 	ExplanationEntities    []MessageEntity
+	ExplanationMedia       *PollMedia
 	OpenPeriod             int64
 	CloseDate              int64
 	IsClosed               bool
 	Description            string
 	DescriptionParseMode   string
 	DescriptionEntities    []MessageEntity
+	Media                  *PollMedia
 }
 
 func (config SendPollConfig) params() (params Params, err error) {
@@ -993,6 +1038,10 @@ func (config SendPollConfig) params() (params Params, err error) {
 	params.AddBool("shuffle_options", config.ShuffleOptions)
 	params.AddBool("allow_adding_options", config.AllowAddingOptions)
 	params.AddBool("hide_results_until_closes", config.HideResultsUntilCloses)
+	params.AddBool("members_only", config.MembersOnly)
+	if err = params.AddNonZeroSliceString("country_codes", config.CountryCodes); err != nil {
+		return
+	}
 	if err = params.AddInterface("correct_option_ids", config.CorrectOptionIDs); err != nil {
 		return
 	}
@@ -1001,12 +1050,18 @@ func (config SendPollConfig) params() (params Params, err error) {
 	if err = params.AddInterface("explanation_entities", config.ExplanationEntities); err != nil {
 		return
 	}
+	if err = params.AddInterface("explanation_media", config.ExplanationMedia); err != nil {
+		return
+	}
 	params.AddNonZeroInteger("open_period", config.OpenPeriod)
 	params.AddNonZeroInteger("close_date", config.CloseDate)
 	params.AddBool("is_closed", config.IsClosed)
 	params.AddNonEmpty("description", config.Description)
 	params.AddNonEmpty("description_parse_mode", config.DescriptionParseMode)
 	if err = params.AddInterface("description_entities", config.DescriptionEntities); err != nil {
+		return
+	}
+	if err = params.AddInterface("media", config.Media); err != nil {
 		return
 	}
 
@@ -1556,6 +1611,24 @@ func (config AnswerWebAppQueryConfig) params() (Params, error) {
 	return params, err
 }
 
+// AnswerGuestQueryConfig Конфигурация для выполнения запроса answerGuestQuery.
+type AnswerGuestQueryConfig struct {
+	InlineMessageID string      `json:"inline_message_id"` // Identifier of the sent inline message.
+	Result          interface{} `json:"result"`            // Результат.
+}
+
+func (config AnswerGuestQueryConfig) method() string {
+	return "answerGuestQuery"
+}
+
+func (config AnswerGuestQueryConfig) params() (params Params, err error) {
+	params = make(Params)
+	params["inline_message_id"] = config.InlineMessageID
+	err = params.AddInterface("result", config.Result)
+
+	return
+}
+
 // SavePreparedInlineMessageConfig stores a message that can be sent by a user of a Mini App.
 // Returns a PreparedInlineMessage object.
 type SavePreparedInlineMessageConfig[T InlineQueryResults] struct {
@@ -1889,11 +1962,12 @@ func (ChatMemberCountConfig) method() string {
 // ChatAdministratorsConfig contains information about getting chat administrators.
 type ChatAdministratorsConfig struct {
 	ChatConfig
+	// ReturnBots Pass True to additionally receive all bots that are administrators of the chat.
+	// By default, bots other than the current bot are omitted.
+	ReturnBots bool `json:"return_bots,omitempty"`
 }
 
-func (ChatAdministratorsConfig) method() string {
-	return "getChatAdministrators"
-}
+func (ChatAdministratorsConfig) method() string { return "getChatAdministrators" }
 
 // SetChatPermissionsConfig allows you to set default permissions for the
 // members in a group. The bot must be an administrator and have rights to
@@ -2476,17 +2550,57 @@ func (config DeleteMessageConfig) params() (Params, error) {
 	return config.BaseChatMessage.params()
 }
 
-// DeleteMessageConfig contains information of a messages in a chat to delete.
+// DeleteMessagesConfig contains information of a messages in a chat to delete.
 type DeleteMessagesConfig struct {
 	BaseChatMessages
 }
 
-func (config DeleteMessagesConfig) method() string {
-	return "deleteMessages"
-}
+func (config DeleteMessagesConfig) method() string { return "deleteMessages" }
 
 func (config DeleteMessagesConfig) params() (Params, error) {
 	return config.BaseChatMessages.params()
+}
+
+// DeleteMessageReactionConfig Конфигурация для method to remove a reaction from a message in a group or
+// a supergroup chat. The bot must have the 'can_delete_messages' administrator right in the chat.
+// Returns True on success.
+type DeleteMessageReactionConfig struct {
+	BaseChatMessage
+	UserID      int64
+	ActorChatID int64
+}
+
+func (config DeleteMessageReactionConfig) method() string { return "deleteMessageReaction" }
+
+func (config DeleteMessageReactionConfig) params() (params Params, err error) {
+	if params, err = config.BaseChatMessage.params(); err != nil {
+		return params, err
+	}
+	params.AddNonZeroInteger("user_id", config.UserID)
+	params.AddNonZeroInteger("actor_chat_id", config.ActorChatID)
+
+	return
+}
+
+// DeleteAllMessageReactionsConfig Конфигурация для method to remove up to 10000 recent reactions in a group
+// or a supergroup chat added by a given user or chat. The bot must have the 'can_delete_messages'
+// administrator right in the chat. Returns True on success.
+type DeleteAllMessageReactionsConfig struct {
+	BaseChat
+	UserID      int64
+	ActorChatID int64
+}
+
+func (config DeleteAllMessageReactionsConfig) method() string { return "deleteAllMessageReactions" }
+
+func (config DeleteAllMessageReactionsConfig) params() (params Params, err error) {
+	if params, err = config.BaseChat.params(); err != nil {
+		return params, err
+	}
+	params.AddNonZeroInteger("user_id", config.UserID)
+	params.AddNonZeroInteger("actor_chat_id", config.ActorChatID)
+
+	return
 }
 
 // GetAvailableGiftsConfig returns the list of gifts that can be sent by the bot
@@ -2514,9 +2628,7 @@ type SendGiftConfig struct {
 	TextEntities  []MessageEntity
 }
 
-func (config SendGiftConfig) method() string {
-	return "sendGift"
-}
+func (config SendGiftConfig) method() string { return "sendGift" }
 
 func (config SendGiftConfig) params() (Params, error) {
 	params := make(Params)
@@ -3268,6 +3380,26 @@ func (config SetStickerSetThumbConfig) files() []RequestFile {
 	}}
 }
 
+// GetUserPersonalChatMessagesConfig Use this method to get the last messages from the personal
+// chat (i.e., the chat currently added to their profile) of a given user.
+// On success, an array of Message objects is returned.
+type GetUserPersonalChatMessagesConfig struct {
+	// UserID Unique identifier for the target user.
+	UserID int64
+	// Limit The maximum number of messages to return; 1-20.
+	Limit int64
+}
+
+func (config GetUserPersonalChatMessagesConfig) method() string { return "getUserPersonalChatMessages" }
+
+func (config GetUserPersonalChatMessagesConfig) params() (ret Params, err error) {
+	ret = make(Params)
+	ret.AddNonZeroInteger("user_id", config.UserID)
+	ret.AddNonZeroInteger("limit", config.Limit)
+
+	return
+}
+
 // SetChatStickerSetConfig allows you to set the sticker set for a supergroup.
 type SetChatStickerSetConfig struct {
 	ChatConfig
@@ -3275,9 +3407,7 @@ type SetChatStickerSetConfig struct {
 	StickerSetName string
 }
 
-func (config SetChatStickerSetConfig) method() string {
-	return "setChatStickerSet"
-}
+func (config SetChatStickerSetConfig) method() string { return "setChatStickerSet" }
 
 func (config SetChatStickerSetConfig) params() (Params, error) {
 	params, err := config.ChatConfig.params()
@@ -3495,9 +3625,7 @@ type MediaGroupConfig struct {
 	Media []InputMedia
 }
 
-func (config MediaGroupConfig) method() string {
-	return "sendMediaGroup"
-}
+func (config MediaGroupConfig) method() string { return "sendMediaGroup" }
 
 func (config MediaGroupConfig) params() (Params, error) {
 	params, err := config.BaseChat.params()
@@ -3609,6 +3737,47 @@ func (config ReplaceManagedBotTokenConfig) method() string { return "replaceMana
 func (config ReplaceManagedBotTokenConfig) params() (ret Params, err error) {
 	ret = make(Params)
 	ret.AddNonZeroInteger("user_id", config.UserID)
+
+	return
+}
+
+// GetManagedBotAccessSettingsConfig Use this method to get the access settings of a managed bot.
+// Returns a BotAccessSettings object on success.
+type GetManagedBotAccessSettingsConfig struct {
+	// UserID User identifier of the managed bot whose access settings will be returned.
+	UserID int64
+}
+
+func (config GetManagedBotAccessSettingsConfig) method() string { return "getManagedBotAccessSettings" }
+
+func (config GetManagedBotAccessSettingsConfig) params() (ret Params, err error) {
+	ret = make(Params)
+	ret.AddNonZeroInteger("user_id", config.UserID)
+
+	return
+}
+
+// SetManagedBotAccessSettingsConfig Use this method to change the access settings of a managed bot.
+// Returns True on success.
+type SetManagedBotAccessSettingsConfig struct {
+	// UserID User identifier of the managed bot whose access settings will be returned.
+	UserID int64
+	// IsAccessRestricted Pass True, if only selected users can access the bot. The bot's owner can always access it.
+	IsAccessRestricted bool
+	// AddedUserIDs A JSON-serialized list of up to 10 identifiers of users who will have access to the bot in
+	// addition to its owner. Ignored if is_access_restricted is false.
+	AddedUserIDs []int64 `json:"added_user_ids,omitempty"`
+}
+
+func (config SetManagedBotAccessSettingsConfig) method() string { return "setManagedBotAccessSettings" }
+
+func (config SetManagedBotAccessSettingsConfig) params() (ret Params, err error) {
+	ret = make(Params)
+	ret.AddNonZeroInteger("user_id", config.UserID)
+	ret.AddBool("is_access_restricted", config.IsAccessRestricted)
+	if err = ret.AddNonZeroSliceInt64("added_user_ids", config.AddedUserIDs); err != nil {
+		return
+	}
 
 	return
 }

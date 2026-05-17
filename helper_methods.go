@@ -271,6 +271,22 @@ func NewBaseInputMedia(mediaType string, media RequestFileData) BaseInputMedia {
 	}
 }
 
+// NewInputMediaLocation creates a new InputMediaLocation.
+// Параметры:
+// 1. latitude - Широта расположения.
+// 2. longitude - Долгота местоположения.
+// 3. horizontalAccuracy - Радиус неопределенности местоположения, измеряемый в метрах; 0-1500.
+func NewInputMediaLocation(latitude, longitude, horizontalAccuracy float64) InputMediaLocation {
+	return InputMediaLocation{
+		BaseInputMediaLocation: BaseInputMediaLocation{
+			Type:      "location",
+			Latitude:  latitude,
+			Longitude: longitude,
+		},
+		HorizontalAccuracy: horizontalAccuracy,
+	}
+}
+
 // NewInputMediaPhoto creates a new InputMediaPhoto.
 func NewInputMediaPhoto(media RequestFileData) InputMediaPhoto {
 	return InputMediaPhoto{
@@ -278,6 +294,34 @@ func NewInputMediaPhoto(media RequestFileData) InputMediaPhoto {
 			Type:  "photo",
 			Media: media,
 		},
+	}
+}
+
+// NewInputMediaSticker creates a new InputMediaSticker.
+func NewInputMediaSticker(media RequestFileData, emoji string) InputMediaSticker {
+	return InputMediaSticker{
+		BaseInputMedia: BaseInputMedia{
+			Type:  "sticker",
+			Media: media,
+		},
+		Emoji: emoji,
+	}
+}
+
+// NewInputMediaVenue creates a new a venue to be sent.
+func NewInputMediaVenue(media InputMediaVenueRequest) InputMediaVenue {
+	return InputMediaVenue{
+		BaseInputMediaLocation: BaseInputMediaLocation{
+			Type:      media.Type,
+			Latitude:  media.Latitude,
+			Longitude: media.Longitude,
+		},
+		Title:           media.Title,
+		Address:         media.Address,
+		FoursquareID:    media.FoursquareID,
+		FoursquareType:  media.FoursquareType,
+		GooglePlaceID:   media.GooglePlaceID,
+		GooglePlaceType: media.GooglePlaceType,
 	}
 }
 

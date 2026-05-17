@@ -82,6 +82,11 @@ type User struct {
 	//
 	// optional
 	CanReadAllGroupMessages bool `json:"can_read_all_group_messages,omitempty"`
+	// SupportsGuestQueries is true, if the bot supports guest queries from chats it is not a member of.
+	// Returned only in getMe.
+	//
+	// optional
+	SupportsGuestQueries bool `json:"supports_guest_queries,omitempty"`
 	// SupportsInlineQueries is true, if the bot supports inline queries.
 	// Returned only in getMe.
 	//
@@ -456,6 +461,13 @@ type Message struct {
 	SenderTag string `json:"sender_tag,omitempty"`
 	// Date of the message was sent in Unix time
 	Date int64 `json:"date"`
+	// GuestQueryID The unique identifier for the guest query.
+	// Use this identifier with the method answerGuestQuery to send a response message.
+	// If non-empty, the message belongs to the chat where the guest bot was summoned, which may not
+	// coincide with other existing bot chats sharing the same identifier.
+	//
+	// optional
+	GuestQueryID string `json:"guest_query_id,omitempty"`
 	// BusinessConnectionID is an unique identifier of the business connection
 	// from which the message was received. If non-empty, the message belongs to
 	// a chat of the corresponding business account that is independent from
@@ -509,6 +521,16 @@ type Message struct {
 	//
 	// optional
 	ViaBot *User `json:"via_bot,omitempty"`
+	// GuestBotCallerUser For a message sent by a guest bot, this is the user whose original message triggered
+	// the bot's response.
+	//
+	// optional
+	GuestBotCallerUser *User `json:"guest_bot_caller_user,omitempty"`
+	// GuestBotCallerChat For a message sent by a guest bot, this is the chat whose original message triggered
+	// the bot's response.
+	//
+	// optional
+	GuestBotCallerChat *Chat `json:"guest_bot_caller_chat,omitempty"`
 	// EditDate of the message was last edited in Unix time;
 	//
 	// optional
@@ -578,6 +600,11 @@ type Message struct {
 	//
 	// optional
 	Document *Document `json:"document,omitempty"`
+	// LivePhoto Message is a live photo, information about the live photo.
+	// For backward compatibility, when this field is set, the photo field will also be set.
+	//
+	// optional
+	LivePhoto *LivePhoto `json:"live_photo,omitempty"`
 	// Message contains paid media; information about the paid media
 	//
 	// optional
@@ -1149,6 +1176,10 @@ type ExternalReplyInfo struct {
 	//
 	// optional
 	Document *Document `json:"document,omitempty"`
+	// LivePhoto Message is a live photo, information about the live photo.
+	//
+	// optional
+	LivePhoto *LivePhoto `json:"live_photo,omitempty"`
 	// Message contains paid media; information about the paid media
 	//
 	// optional
@@ -1325,6 +1356,30 @@ func (m MessageOrigin) IsChat() bool {
 
 func (m MessageOrigin) IsChannel() bool {
 	return m.Type == MessageOriginChannel
+}
+
+// LivePhoto Media is a live photo, information about the live photo.
+type LivePhoto struct {
+	// Photo Available sizes of the corresponding static photo.
+	Photo []PhotoSize `json:"photo,omitempty"`
+	// FileID Identifier for the video file which can be used to download or reuse the file.
+	FileID string `json:"file_id"`
+	// FileUniqueID Unique identifier for the video file which is supposed to be the same over
+	// time and for different bots. Can't be used to download or reuse the file.
+	FileUniqueID string `json:"file_unique_id"`
+	// Width Video width as defined by the sender.
+	Width int64 `json:"width"`
+	// Height Video height as defined by the sender.
+	Height int64 `json:"height"`
+	// Duration of the video in seconds as defined by the sender.
+	Duration int64 `json:"duration"`
+	// MimeType MIME type of the file as defined by the sender.
+	MimeType string `json:"mime_type,omitempty"`
+	// FileSize File size in bytes.
+	// It can be bigger than 2^31 and some programming languages may have difficulty/silent defects in interpreting it.
+	// But it has at most 52 significant bits, so a signed 64-bit integer or double-precision float type are safe
+	// for storing this value.
+	FileSize int64 `json:"file_size,omitempty"`
 }
 
 // PhotoSize represents one size of a photo or a file / sticker thumbnail.
@@ -1548,15 +1603,17 @@ type PaidMediaInfo struct {
 	PaidMedia []PaidMedia `json:"paid_media"`
 }
 
-// This object describes paid media. Currently, it can be one of
-//   - PaidMediaPreview
+// PaidMedia This object describes paid media. Currently, it can be one of.
+//   - PaidMediaLivePhoto
 //   - PaidMediaPhoto
+//   - PaidMediaPreview
 //   - PaidMediaVideo
 type PaidMedia struct {
 	// Type of the paid media, should be one of:
+	//   - "live_photo"
 	//   - "photo"
-	//   - "video"
 	//   - "preview"
+	//   - "video"
 	Type string `json:"type"`
 	// PaidMediaPreview only.
 	// Media width as defined by the sender.
@@ -1573,6 +1630,8 @@ type PaidMedia struct {
 	//
 	// optional
 	Duration int64 `json:"duration,omitempty"`
+	// LivePhoto The photo.
+	LivePhoto *LivePhoto `json:"live_photo,omitempty"`
 	// PaidMediaPhoto only.
 	// The photo
 	Photo []PhotoSize `json:"photo,omitempty"`
@@ -1609,6 +1668,28 @@ type Dice struct {
 	Emoji string `json:"emoji"`
 	// Value of the dice
 	Value int64 `json:"value"`
+}
+
+// PollMedia At most one of the optional fields can be present in any given object.
+type PollMedia struct {
+	// Animation Media is an animation, information about the animation.
+	Animation *Animation `json:"animation,omitempty"`
+	// Audio Media is an audio file, information about the file; currently, can't be received in a poll option.
+	Audio *Audio `json:"audio,omitempty"`
+	// Document Media is a general file, information about the file; currently, can't be received in a poll option.
+	Document *Document `json:"document,omitempty"`
+	// LivePhoto Media is a live photo, information about the live photo.
+	LivePhoto *LivePhoto `json:"livePhoto,omitempty"`
+	// Location Media is a shared location, information about the location.
+	Location *Location `json:"location,omitempty"`
+	// Photo Media is a photo, available sizes of the photo.
+	Photo []PhotoSize `json:"photo,omitempty"`
+	// Sticker Media is a sticker, information about the sticker; currently, for poll options only.
+	Sticker *Sticker `json:"sticker,omitempty"`
+	// Venue Media is a venue, information about the venue.
+	Venue *Venue `json:"venue,omitempty"`
+	// Video Media is a video, information about the video.
+	Video *Video `json:"video,omitempty"`
 }
 
 // PollOption contains information about one answer option in a poll.
@@ -1653,6 +1734,19 @@ type InputPollOption struct {
 	//
 	// optional
 	TextEntities []MessageEntity `json:"text_entities,omitempty"`
+	// Media added to the poll option.
+	Media *InputPollOptionMedia `json:"media,omitempty"`
+}
+
+// InputPollOptionMedia This object represents the content of a poll option to be sent. It should be one of.
+type InputPollOptionMedia struct {
+	InputMediaAnimation
+	InputMediaLivePhoto
+	InputMediaLocation
+	InputMediaPhoto
+	InputMediaSticker
+	InputMediaVenue
+	InputMediaVideo
 }
 
 // PollAnswer represents an answer of a user in a non-anonymous poll.
@@ -1701,6 +1795,13 @@ type Poll struct {
 	AllowsMultipleAnswers bool `json:"allows_multiple_answers"`
 	// AllowsRevoting is true, if the poll allows to change the chosen answer options.
 	AllowsRevoting bool `json:"allows_revoting,omitempty"`
+	// MembersOnly is true if voting is limited to users who have been members of the chat where the poll
+	// was originally sent for more than 24 hours.
+	MembersOnly bool `json:"members_only"`
+	// CountryCodes A list of two-letter ISO 3166-1 alpha-2 country codes indicating the countries from which
+	// users can vote in the poll. The country code “FT” is used for users with anonymous numbers.
+	// If omitted, then users from any country can participate in the poll.
+	CountryCodes []string `json:"country_codes,omitempty"`
 	// CorrectOptionIDs Array of 0-based identifiers of the correct answer options.
 	// Available only for polls in quiz mode which are closed or were sent (not forwarded) by
 	// the bot or to the private chat with the bot.
@@ -1717,6 +1818,8 @@ type Poll struct {
 	//
 	// optional
 	ExplanationEntities []MessageEntity `json:"explanation_entities,omitempty"`
+	// ExplanationMedia Media added to the quiz explanation.
+	ExplanationMedia *PollMedia `json:"explanation_media,omitempty"`
 	// OpenPeriod is the amount of time in seconds the poll will be active
 	// after creation
 	//
@@ -1735,14 +1838,16 @@ type Poll struct {
 	//
 	// optional
 	DescriptionEntities []MessageEntity `json:"description_entities,omitempty"`
+	// Media Media added to the poll description; for polls inside the Message object only.
+	Media *PollMedia `json:"media,omitempty"`
 }
 
 // Location represents a point on the map.
 type Location struct {
-	// Longitude as defined by sender
-	Longitude float64 `json:"longitude"`
 	// Latitude as defined by sender
 	Latitude float64 `json:"latitude"`
+	// Longitude as defined by sender
+	Longitude float64 `json:"longitude"`
 	// HorizontalAccuracy is the radius of uncertainty for the location,
 	// measured in meters; 0-1500
 	//
@@ -2832,192 +2937,120 @@ type ChatAdministratorRights struct {
 
 // ChatMember contains information about one member of a chat.
 type ChatMember struct {
-	// User information about the user
-	User *User `json:"user"`
 	// Status the member's status in the chat.
-	// Can be
-	//  "creator",
-	//  "administrator",
-	//  "member",
-	//  "restricted",
-	//  "left" or
-	//  "kicked"
 	Status string `json:"status"`
-	// CustomTitle owner and administrators only. Custom title for this user
-	//
-	// optional
-	CustomTitle string `json:"custom_title,omitempty"`
-	// IsAnonymous owner and administrators only. True, if the user's presence
-	// in the chat is hidden
-	//
-	// optional
-	IsAnonymous bool `json:"is_anonymous,omitempty"`
-	// UntilDate for restricted and kicked.
-	// Date when restrictions will be lifted for this user;
-	// unix time.
-	//
-	// Until date for member.
-	// Date when the user's subscription will expire;
-	// Unix time
-	//
-	// optional
-	UntilDate int64 `json:"until_date,omitempty"`
 	// Tag Optional. Tag of the member.
 	// Added at 01.03.2026 the field tag to the classes ChatMemberMember and ChatMemberRestricted.
 	//
 	// optional
 	Tag string `json:"tag,omitempty"`
+	// User information about the user
+	User *User `json:"user"`
+	// IsMember is true, if the user is a member of the chat at the moment of
+	// the request
+	IsMember bool `json:"is_member"`
+	// CanSendMessages if the user is allowed to send text messages, contacts, giveaways, giveaway winners, invoices,
+	// locations and venues.
+	CanSendMessages bool `json:"can_send_messages,omitempty"`
+	// CanSendAudios restricted only.
+	// True, if the user is allowed to send audios
+	CanSendAudios bool `json:"can_send_audios,omitempty"`
+	// CanSendDocuments restricted only.
+	// True, if the user is allowed to send documents
+	CanSendDocuments bool `json:"can_send_documents,omitempty"`
+	// CanSendPhotos is restricted only.
+	// True, if the user is allowed to send photos
+	CanSendPhotos bool `json:"can_send_photos,omitempty"`
+	// CanSendVideos restricted only.
+	// True, if the user is allowed to send videos
+	CanSendVideos bool `json:"can_send_videos,omitempty"`
+	// CanSendVideoNotes restricted only.
+	// True, if the user is allowed to send video notes
+	CanSendVideoNotes bool `json:"can_send_video_notes,omitempty"`
+	// CanSendVoiceNotes restricted only.
+	// True, if the user is allowed to send voice notes
+	CanSendVoiceNotes bool `json:"can_send_voice_notes,omitempty"`
+	// CanSendPolls restricted only.
+	// True, if the user is allowed to send polls
+	CanSendPolls bool `json:"can_send_polls,omitempty"`
+	// CanSendOtherMessages restricted only.
+	// True, if the user is allowed to send audios, documents,
+	// photos, videos, video notes and voice notes.
+	CanSendOtherMessages bool `json:"can_send_other_messages,omitempty"`
+	// CanAddWebPagePreviews restricted only.
+	// True, if the user is allowed to add web page previews to their messages.
+	CanAddWebPagePreviews bool `json:"can_add_web_page_previews,omitempty"`
+	// CanReactToMessages if the user is allowed to react to messages.
+	CanReactToMessages bool `json:"can_react_to_messages"`
+	// CanEditTag True, if the user is allowed to edit their own tag.
+	CanEditTag bool `json:"can_edit_tag,omitempty"`
+	// CanChangeInfo administrators and restricted only.
+	// True, if the user is allowed to change the chat title, photo and other settings.
+	CanChangeInfo bool `json:"can_change_info,omitempty"`
+	// CanInviteUsers administrators and restricted only.
+	// True, if the user is allowed to invite new users to the chat.
+	CanInviteUsers bool `json:"can_invite_users,omitempty"`
+	// CanPinMessages administrators and restricted only.
+	// True, if the user is allowed to pin messages; groups and supergroups only
+	CanPinMessages bool `json:"can_pin_messages,omitempty"`
+	// CanManageTopics administrators and restricted only.
+	// True, if the user is allowed to create, rename, close, and reopen forum topics; supergroups only.
+	CanManageTopics bool `json:"can_manage_topics,omitempty"`
+	// UntilDate for restricted and kicked. Date when restrictions will be lifted for this user unix time.
+	// Until date for member. Date when the user's subscription will expire.
+	UntilDate int64 `json:"until_date,omitempty"`
+	// CustomTitle owner and administrators only. Custom title for this user
+	CustomTitle string `json:"custom_title,omitempty"`
+	// IsAnonymous owner and administrators only. True, if the user's presence
+	// in the chat is hidden
+	IsAnonymous bool `json:"is_anonymous,omitempty"`
 	// CanBeEdited administrators only.
 	// True, if the bot is allowed to edit administrator privileges of that user.
-	//
-	// optional
 	CanBeEdited bool `json:"can_be_edited,omitempty"`
 	// CanManageChat administrators only.
 	// True, if the administrator can access the chat event log, chat
 	// statistics, message statistics in channels, see channel members, see
 	// anonymous administrators in supergroups and ignore slow mode. Implied by
 	// any other administrator privilege.
-	//
-	// optional
 	CanManageChat bool `json:"can_manage_chat,omitempty"`
 	// CanPostMessages administrators only.
 	// True, if the administrator can post in the channel;
 	// channels only.
-	//
-	// optional
 	CanPostMessages bool `json:"can_post_messages,omitempty"`
 	// CanEditMessages administrators only.
 	// True, if the administrator can edit messages of other users and can pin messages;
 	// channels only.
-	//
-	// optional
 	CanEditMessages bool `json:"can_edit_messages,omitempty"`
 	// CanDeleteMessages administrators only.
 	// True, if the administrator can delete messages of other users.
-	//
-	// optional
 	CanDeleteMessages bool `json:"can_delete_messages,omitempty"`
 	// CanManageVideoChats administrators only.
 	// True, if the administrator can manage video chats.
-	//
-	// optional
 	CanManageVideoChats bool `json:"can_manage_video_chats,omitempty"`
 	// CanRestrictMembers administrators only.
 	// True, if the administrator can restrict, ban or unban chat members.
-	//
-	// optional
 	CanRestrictMembers bool `json:"can_restrict_members,omitempty"`
 	// CanPromoteMembers administrators only.
 	// True, if the administrator can add new administrators
 	// with a subset of their own privileges or demote administrators that he has promoted,
 	// directly or indirectly (promoted by administrators that were appointed by the user).
-	//
-	// optional
 	CanPromoteMembers bool `json:"can_promote_members,omitempty"`
-	// CanChangeInfo administrators and restricted only.
-	// True, if the user is allowed to change the chat title, photo and other settings.
-	//
-	// optional
-	CanChangeInfo bool `json:"can_change_info,omitempty"`
-	// CanInviteUsers administrators and restricted only.
-	// True, if the user is allowed to invite new users to the chat.
-	//
-	// optional
-	CanInviteUsers bool `json:"can_invite_users,omitempty"`
-	// CanPinMessages administrators and restricted only.
-	// True, if the user is allowed to pin messages; groups and supergroups only
-	//
-	// optional
-	CanPinMessages bool `json:"can_pin_messages,omitempty"`
 	// CanPostStories administrators only.
 	// True, if the administrator can post stories in the channel; channels only
-	//
-	// optional
 	CanPostStories bool `json:"can_post_stories,omitempty"`
 	// CanEditStories administrators only.
 	// True, if the administrator can edit stories posted by other users; channels only
-	//
-	// optional
 	CanEditStories bool `json:"can_edit_stories,omitempty"`
 	// CanDeleteStories administrators only.
 	// True, if the administrator can delete stories posted by other users; channels only
-	//
-	// optional
 	CanDeleteStories bool `json:"can_delete_stories,omitempty"`
-	// CanManageTopics administrators and restricted only.
-	// True, if the user is allowed to create, rename,
-	// close, and reopen forum topics; supergroups only
-	//
-	// optional
-	CanManageTopics bool `json:"can_manage_topics,omitempty"`
 	// CanManageDirectMessages administrators only.
 	// True, if the administrator can manage direct messages of the channel and decline suggested posts.
-	//
-	// optional
 	CanManageDirectMessages bool `json:"can_manage_direct_messages,omitempty"`
-	// IsMember is true, if the user is a member of the chat at the moment of
-	// the request
-	IsMember bool `json:"is_member"`
-	// CanSendMessages
-	//
-	// optional
-	CanSendMessages bool `json:"can_send_messages,omitempty"`
-	// CanSendAudios restricted only.
-	// True, if the user is allowed to send audios
-	//
-	// optional
-	CanSendAudios bool `json:"can_send_audios,omitempty"`
-	// CanSendDocuments restricted only.
-	// True, if the user is allowed to send documents
-	//
-	// optional
-	CanSendDocuments bool `json:"can_send_documents,omitempty"`
-	// CanSendPhotos is restricted only.
-	// True, if the user is allowed to send photos
-	//
-	// optional
-	CanSendPhotos bool `json:"can_send_photos,omitempty"`
-	// CanSendVideos restricted only.
-	// True, if the user is allowed to send videos
-	//
-	// optional
-	CanSendVideos bool `json:"can_send_videos,omitempty"`
-	// CanSendVideoNotes restricted only.
-	// True, if the user is allowed to send video notes
-	//
-	// optional
-	CanSendVideoNotes bool `json:"can_send_video_notes,omitempty"`
-	// CanSendVoiceNotes restricted only.
-	// True, if the user is allowed to send voice notes
-	//
-	// optional
-	CanSendVoiceNotes bool `json:"can_send_voice_notes,omitempty"`
-	// CanSendPolls restricted only.
-	// True, if the user is allowed to send polls
-	//
-	// optional
-	CanSendPolls bool `json:"can_send_polls,omitempty"`
-	// CanSendOtherMessages restricted only.
-	// True, if the user is allowed to send audios, documents,
-	// photos, videos, video notes and voice notes.
-	//
-	// optional
-	CanSendOtherMessages bool `json:"can_send_other_messages,omitempty"`
-	// CanAddWebPagePreviews restricted only.
-	// True, if the user is allowed to add web page previews to their messages.
-	//
-	// optional
-	CanAddWebPagePreviews bool `json:"can_add_web_page_previews,omitempty"`
 	// CanManageTags Optional. True, if the administrator can edit the tags of regular members;
 	// for groups and supergroups only.
 	// If omitted defaults to the value of can_pin_messages.
-	//
-	// optional
 	CanManageTags bool `json:"can_manage_tags,omitempty"`
-	// CanEditTag True, if the user is allowed to edit their own tag.
-	//
-	// optional
-	CanEditTag bool `json:"can_edit_tag,omitempty"`
 }
 
 // IsCreator returns if the ChatMember was the creator of the chat.
@@ -3150,6 +3183,11 @@ type ChatPermissions struct {
 	//
 	// optional
 	CanAddWebPagePreviews bool `json:"can_add_web_page_previews,omitempty"`
+	// CanReactToMessages true, if the user is allowed to react to messages.
+	// If omitted, defaults to the value of can_send_messages.
+	//
+	// optional
+	CanReactToMessages bool `json:"can_react_to_messages,omitempty"`
 	// CanEditTag Optional. True, if the user is allowed to edit their own tag.
 	//
 	// optional
@@ -3774,9 +3812,72 @@ func (media *PaidMediaConfig) setUploadThumb(fileRef string) {
 	media.Media.setUploadThumb(fileRef)
 }
 
+// BaseInputMediaLocation Базовый тип локации.
+type BaseInputMediaLocation struct {
+	// Type of the result, must be location.
+	Type string `json:"type"`
+	// Latitude of the location.
+	Latitude float64 `json:"latitude"`
+	// Longitude of the location
+	Longitude float64 `json:"longitude"`
+}
+
+// InputMediaLocation Represents a location to be sent.
+type InputMediaLocation struct {
+	BaseInputMediaLocation
+	// HorizontalAccuracy The radius of uncertainty for the location, measured in meters; 0-1500.
+	HorizontalAccuracy float64 `json:"horizontal_accuracy,omitempty"`
+}
+
 // InputMediaPhoto is a photo to send as part of a media group.
 type InputMediaPhoto struct {
 	BaseInputMedia
+}
+
+type InputMediaLivePhoto struct {
+	BaseInputMedia
+	Photo string `json:"photo"`
+}
+
+// InputMediaSticker Represents a sticker file to be sent.
+type InputMediaSticker struct {
+	BaseInputMedia
+	// Emoji associated with the sticker; only for just uploaded stickers.
+	Emoji string `json:"emoji,omitempty"`
+}
+
+type InputMediaVenueRequest struct {
+	BaseInputMediaLocation
+	// Title Name of the venue.
+	Title string `json:"title"`
+	// Address of the venue.
+	Address string `json:"address"`
+	// FoursquareID Foursquare identifier of the venue.
+	FoursquareID string `json:"foursquare_id,omitempty"`
+	// FoursquareType Foursquare type of the venue, if known.
+	FoursquareType string `json:"foursquare_type,omitempty"`
+	// GooglePlaceID Google Places identifier of the venue.
+	GooglePlaceID string `json:"google_place_id,omitempty"`
+	// GooglePlaceType Google Places type of the venue.
+	// Поддерживаемые типы: https://developers.google.com/places/web-service/supported_types
+	GooglePlaceType string `json:"google_place_type,omitempty"`
+}
+
+type InputMediaVenue struct {
+	BaseInputMediaLocation
+	// Title Name of the venue.
+	Title string `json:"title"`
+	// Address of the venue.
+	Address string `json:"address"`
+	// FoursquareID Foursquare identifier of the venue.
+	FoursquareID string `json:"foursquare_id,omitempty"`
+	// FoursquareType Foursquare type of the venue, if known.
+	FoursquareType string `json:"foursquare_type,omitempty"`
+	// GooglePlaceID Google Places identifier of the venue.
+	GooglePlaceID string `json:"google_place_id,omitempty"`
+	// GooglePlaceType Google Places type of the venue.
+	// Поддерживаемые типы: https://developers.google.com/places/web-service/supported_types
+	GooglePlaceType string `json:"google_place_type,omitempty"`
 }
 
 // InputMediaVideo is a video to send as part of a media group.
@@ -3881,7 +3982,8 @@ type InputMediaDocument struct {
 	DisableContentTypeDetection bool `json:"disable_content_type_detection,omitempty"`
 }
 
-// This object describes the paid media to be sent. Currently, it can be one of:
+// InputPaidMedia This object describes the paid media to be sent. Currently, it can be one of:
+//   - InputPaidMediaLivePhoto
 //   - InputPaidMediaPhoto
 //   - InputPaidMediaVideo
 type InputPaidMedia struct {
@@ -4222,25 +4324,25 @@ type InlineQuery struct {
 // and ensuring only supported inline query results are used.
 type InlineQueryResults interface {
 	InlineQueryResultCachedAudio |
-	InlineQueryResultCachedDocument |
-	InlineQueryResultCachedGIF |
-	InlineQueryResultCachedMPEG4GIF |
-	InlineQueryResultCachedPhoto |
-	InlineQueryResultCachedSticker |
-	InlineQueryResultCachedVideo |
-	InlineQueryResultCachedVoice |
-	InlineQueryResultArticle |
-	InlineQueryResultAudio |
-	InlineQueryResultContact |
-	InlineQueryResultGame |
-	InlineQueryResultDocument |
-	InlineQueryResultGIF |
-	InlineQueryResultLocation |
-	InlineQueryResultMPEG4GIF |
-	InlineQueryResultPhoto |
-	InlineQueryResultVenue |
-	InlineQueryResultVideo |
-	InlineQueryResultVoice
+		InlineQueryResultCachedDocument |
+		InlineQueryResultCachedGIF |
+		InlineQueryResultCachedMPEG4GIF |
+		InlineQueryResultCachedPhoto |
+		InlineQueryResultCachedSticker |
+		InlineQueryResultCachedVideo |
+		InlineQueryResultCachedVoice |
+		InlineQueryResultArticle |
+		InlineQueryResultAudio |
+		InlineQueryResultContact |
+		InlineQueryResultGame |
+		InlineQueryResultDocument |
+		InlineQueryResultGIF |
+		InlineQueryResultLocation |
+		InlineQueryResultMPEG4GIF |
+		InlineQueryResultPhoto |
+		InlineQueryResultVenue |
+		InlineQueryResultVideo |
+		InlineQueryResultVoice
 }
 
 // InlineQueryResultCachedAudio is an inline query response with cached audio.
@@ -5121,6 +5223,12 @@ type SentWebAppMessage struct {
 	InlineMessageID string `json:"inline_message_id,omitempty"`
 }
 
+// SentGuestMessage Describes an inline message sent by a guest bot.
+type SentGuestMessage struct {
+	// InlineMessageID Identifier of the sent inline message.
+	InlineMessageID string `json:"inline_message_id"`
+}
+
 // PreparedInlineMessage describes an inline message to be sent by a user of a Mini App.
 type PreparedInlineMessage struct {
 	// ID is a unique identifier of the prepared message
@@ -5960,10 +6068,18 @@ type PollOptionDeleted struct {
 	OptionTextEntities []MessageEntity `json:"option_text_entities,omitempty"`
 }
 
-// DirectMessagesTopic represents a direct messages topic.
+// DirectMessagesTopic represents a direct messages' topic.
 type DirectMessagesTopic struct {
 	TopicID int64 `json:"topic_id"`
 	User    *User `json:"user,omitempty"`
+}
+
+// BotAccessSettings This object describes the access settings of a bot.
+type BotAccessSettings struct {
+	// IsAccessRestricted True, if only selected users can access the bot. The bot's owner can always access it.
+	IsAccessRestricted bool `json:"is_access_restricted"`
+	// The list of other users who have access to the bot if the access is restricted.
+	AddedUsers []User `json:"added_users,omitempty"`
 }
 
 // AcceptedGiftTypes describes accepted gift categories.
@@ -6263,10 +6379,12 @@ type (
 	MenuButtonCommands                   = MenuButton
 	MenuButtonWebApp                     = MenuButton
 	MenuButtonDefault                    = MenuButton
+	InputPaidMediaLivePhoto              = InputPaidMedia
 	InputPaidMediaPhoto                  = InputPaidMedia
 	InputPaidMediaVideo                  = InputPaidMedia
-	PaidMediaPreview                     = PaidMedia
+	PaidMediaLivePhoto                   = PaidMedia
 	PaidMediaPhoto                       = PaidMedia
+	PaidMediaPreview                     = PaidMedia
 	PaidMediaVideo                       = PaidMedia
 	RevenueWithdrawalStatePending        = RevenueWithdrawalState
 	RevenueWithdrawalStateSucceeded      = RevenueWithdrawalState

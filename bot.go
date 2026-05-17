@@ -890,6 +890,18 @@ func (bot *BotAPI) AnswerWebAppQuery(config AnswerWebAppQueryConfig) (SentWebApp
 	return sentWebAppMessage, err
 }
 
+// AnswerGuestQuery Выполнение запроса answerGuestQuery и загрузка результата.
+func (bot *BotAPI) AnswerGuestQuery(config AnswerGuestQueryConfig) (ret SentGuestMessage, err error) {
+	var resp *APIResponse
+
+	if resp, err = bot.Request(config); err != nil {
+		return
+	}
+	err = json.Unmarshal(resp.Result, &ret)
+
+	return
+}
+
 // GetMyDefaultAdministratorRights gets the current default administrator rights of the bot.
 func (bot *BotAPI) GetMyDefaultAdministratorRights(config GetMyDefaultAdministratorRightsConfig) (ChatAdministratorRights, error) {
 	var rights ChatAdministratorRights

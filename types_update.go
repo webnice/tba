@@ -47,6 +47,11 @@ type Update struct {
 	//
 	// optional
 	BusinessMessage *Message `json:"business_message,omitempty"`
+	// GuestMessage New guest message. The bot can use the field Message.guest_query_id and the
+	// method answerGuestQuery to send a message in response.
+	//
+	// optional
+	GuestMessage *Message `json:"guest_message,omitempty"`
 	// EditedBusinessMessage is a new version of a message from a
 	// connected business account
 	//
